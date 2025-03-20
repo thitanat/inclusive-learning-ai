@@ -34,10 +34,7 @@ async function callOpenAI(prompt: string) {
 
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error(
-      "❌ OpenAI API Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ OpenAI API Error:", error.response?.data || error.message);
     throw new Error("Failed to fetch AI response");
   }
 }
@@ -48,10 +45,7 @@ export async function POST(req: Request) {
   const { sessionId, userMessage } = await req.json();
 
   if (!sessionId || !userMessage) {
-    return NextResponse.json(
-      { error: "Missing sessionId or userMessage." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Missing sessionId or userMessage." }, { status: 400 });
   }
 
   let session = await getSession(sessionId);
@@ -74,18 +68,12 @@ export async function POST(req: Request) {
         improvedLessonPlan: "",
       });
 
-      return NextResponse.json({
-        type: "json",
-        lessonPlan: JSON.parse(lessonPlan),
-        nextQuestion: questions[1],
-      });
+      return NextResponse.json({ type: "json", lessonPlan: JSON.parse(lessonPlan), nextQuestion: questions[1], });
     }
 
     // **Steps 2-6: Reflection Questions with AI Response**
     if (session.step >= 2 && session.step <= 5) {
-      console.log(
-        `✍️ AI answering reflection step ${session.step} for session: ${sessionId}`
-      );
+      console.log(`✍️ AI answering reflection step ${session.step} for session: ${sessionId}`);
 
       session.responses[`step${session.step}`] = userMessage;
 
@@ -93,9 +81,7 @@ export async function POST(req: Request) {
       let context = "";
       for (let i = 2; i < session.step; i++) {
         if (session.responses[`step${i}`]) {
-          context += `Question ${i}: ${questions[i]}\nUser Response: ${
-            session.responses[`step${i}`]
-          }\n\n`;
+          context += `Question ${i}: ${questions[i]}\nUser Response: ${session.responses[`step${i}`]}\n\n`;
         }
       }
 
@@ -113,31 +99,18 @@ export async function POST(req: Request) {
         step: session.step + 1,
       });
 
-      // Build conversation history
-      const conversation = [];
-      for (let i = 1; i <= session.step; i++) {
-        if (session.responses[`step${i}`]) {
-          conversation.push({
-            response: aiResponse,
-            userMessage: session.responses[`step${i}`],
-          });
-        }
-      }
-
       if (session.step <= 5) {
         return NextResponse.json({
           type: "text",
+          summary: aiResponse,
           nextQuestion: questions[session.step],
-          conversation,
         });
       }
     }
 
     // **Final Step: Generate Improved Lesson Plan (JSON)**
     if (session.step > 5) {
-      console.log(
-        `🔄 Generating improved lesson plan for session: ${sessionId}`
-      );
+      console.log(`🔄 Generating improved lesson plan for session: ${sessionId}`);
       const prompt = `Analyze the following teacher feedback and improve the lesson plan accordingly:\n
                       Feedback: ${JSON.stringify(session.responses)}
                       Original Lesson Plan: ${session.lessonPlan}
@@ -150,21 +123,12 @@ export async function POST(req: Request) {
         step: "completed",
       });
 
-      return NextResponse.json({
-        type: "json",
-        improvedLessonPlan: JSON.parse(improvedLessonPlan),
-      });
+      return NextResponse.json({ type: "json", improvedLessonPlan: JSON.parse(improvedLessonPlan) });
     }
 
-    return NextResponse.json(
-      { error: "Invalid step or session state." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid step or session state." }, { status: 400 });
   } catch (error) {
     console.error(`❌ Error processing session ${sessionId}:`, error.message);
-    return NextResponse.json(
-      { error: "Internal server error." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
