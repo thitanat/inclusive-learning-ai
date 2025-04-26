@@ -1,12 +1,14 @@
-import axios from "axios";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { HumanMessage } from "@langchain/core/messages";
 import { NextResponse } from "next/server";
 import { getSession, createSession, updateSession } from "@/models/session";
 import { connectDB } from "@/lib/db";
+import { z } from "zod";
+import { getRetrieverFrom } from "@/lib/retriever";
+import { callLLM } from "@/lib/llm";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
-// Reflection questions mapped by step
 const questions: { [key: number]: string } = {
   1: "How practical do you think this lesson plan is? Are there any limitations?",
   2: "What do you predict the learning outcomes will be?",
@@ -15,41 +17,35 @@ const questions: { [key: number]: string } = {
   5: "What are the weaknesses in this lesson plan?",
 };
 
-// OpenAI API Call Using Axios
-async function callOpenAI(prompt: string) {
-  try {
-    const response = await axios.post(
-      OPENAI_URL,
-      {
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
 
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error(
-      "❌ OpenAI API Error:",
-      error.response?.data || error.message
-    );
-    throw new Error("Failed to fetch AI response");
-  }
-}
 
-// ✅ Export POST Method for Next.js API Route
 export async function POST(req: Request) {
   await connectDB();
-  const { sessionId, userMessage } = await req.json();
+  const {
+    sessionId,
+    lessonTopic,
+    subject,
+    level,
+    ageRange,
+    studentType,
+    learningTime,
+    timeSlot,
+    limitation,
+  } = await req.json();
 
-  if (!sessionId || !userMessage) {
+  if (
+    !sessionId ||
+    !lessonTopic ||
+    !subject ||
+    !level ||
+    !ageRange ||
+    !studentType ||
+    !learningTime ||
+    !timeSlot ||
+    !limitation
+  ) {
     return NextResponse.json(
-      { error: "Missing sessionId or userMessage." },
+      { error: "Missing required fields." },
       { status: 400 }
     );
   }
@@ -57,14 +53,71 @@ export async function POST(req: Request) {
   let session = await getSession(sessionId);
 
   try {
-    // **Step 1: Generate Lesson Plan (JSON)**
+    // Step 1: Generate Lesson Plan
     if (!session) {
       console.log(`🆕 Creating new session: ${sessionId}`);
 
-      const prompt = `Create a structured lesson plan for "${userMessage}" using UDL, MTSS, and Bloom's Taxonomy.
-                      Respond in JSON format with the following keys: "lesson_title", "objectives", "activities", "assessment_methods".`;
+      const task = `ออกแบบหลักสูตรการเรียนรู้ในลักษณะห้องเรียนรวม (Inclusive Classroom) สำหรับระดับการศึกษา ${level} โดยมีช่วงอายุของผู้เรียนประมาณ ${ageRange} ปี
+                    ผู้เรียนในห้องเรียนนี้มีความหลากหลายและรวมถึงกลุ่มที่ต้องการการสนับสนุนพิเศษ เช่น ${studentType}
+                    หลักสูตรนี้มีจุดมุ่งหมายเพื่อสอนในรายวิชา ${subject} เรื่อง ${lessonTopic} ใช้เวลาทั้งหมด ${learningTime} เดือนโดยจัดการเรียนรู้ครั้งละ ${timeSlot} ชั่วโมง/สัปดาห์
+                    ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}`;
+      const type = `JSON`;
+      const field = `{
+        "courseTitle": "...",
+        "level": "...",
+        "subject": "...",
+        "durationHours": "...",
+        "unit": [
+          {
+            "unitTitle": "...",
+            "duration": "...",
+            "competencyFocus": ["...", "..."],
+            "learningOutcomes": ["..."],
+            "scenarios": "...",
+            "udlDesign": {
+              "multipleMeansOfEngagement": "...",
+              "multipleMeansOfRepresentation": "...",
+              "multipleMeansOfActionExpression": "..."
+            },
+            "activities": [
+              {
+                "activityTitle": "...",
+                "strategies": ["..."],
+                "scaffolding": true,
+                "technologySupport": ["..."],
+                "inclusionSupport": ["..."]
+              }
+            ],
+            "assessment": {
+              "formative": "...",
+              "summative": "...",
+              "diverseAssessmentMethods": ["..."],
+              "transferAssessment": {
+                "vertical": "...",
+                "horizontal": "..."
+              }
+            }
+          }
+        ],
+        "teacherDevelopment": ["..."],
+        "collaboration": {
+          "withParents": "...",
+          "withExperts": "...",
+          "withCoTeachers": "..."
+        },
+        "classroomEnvironment": {
+          "physicalFlexibility": true,
+          "emotionalSafety": true,
+          "positiveBehaviorSupport": {
+            "rules": "...",
+            "reinforcements": "..."
+          }
+        }
+      }`;
 
-      const lessonPlan = await callOpenAI(prompt);
+      const lessonPlan = await callLLM(task, type
+        , field);
+      console.log("lessonPlan", lessonPlan);
 
       await createSession({
         sessionId,
@@ -74,22 +127,29 @@ export async function POST(req: Request) {
         improvedLessonPlan: "",
       });
 
-      return NextResponse.json({
-        type: "json",
-        lessonPlan: JSON.parse(lessonPlan),
-        nextQuestion: questions[1],
-      });
+      try {
+        return NextResponse.json({
+          type: "json",
+          lessonPlan: lessonPlan,
+          nextQuestion: questions[1],
+        });
+      } catch (e) {
+        console.error("Invalid JSON structure:", e);
+        return NextResponse.json({
+          error: "Model did not return valid JSON.",
+          debug: lessonPlan,
+        });
+      }
     }
 
-    // **Steps 2-6: Reflection Questions with AI Response**
+    // Step 2-5: Reflection Questions
     if (session.step >= 2 && session.step <= 5) {
       console.log(
-        `✍️ AI answering reflection step ${session.step} for session: ${sessionId}`
+        `🧠 Step ${session.step}: Reflection for session ${sessionId}`
       );
 
       session.responses[`step${session.step}`] = userMessage;
 
-      // Build context using previous responses
       let context = "";
       for (let i = 2; i < session.step; i++) {
         if (session.responses[`step${i}`]) {
@@ -99,21 +159,19 @@ export async function POST(req: Request) {
         }
       }
 
-      // Create AI prompt using context
-      const aiPrompt = `You are evaluating a lesson plan using reflective teaching methods.
-        Previous reflections:\n${context}
-        Current question: "${questions[session.step]}"
-        User's latest response: "${userMessage}"
-        Based on this, provide an AI response summarizing insights from the discussion.`;
+      const task = `คุณกำลังประเมินแผนการสอนโดยใช้วิธีการสะท้อนการสอน
+        การสะท้อนก่อนหน้า:\n${context}
+        คำถามปัจจุบัน: "${questions[session.step]}"
+        คำตอบล่าสุดของผู้ใช้: "${userMessage}"
+        จากนี้ ให้สร้างคำตอบ AI ที่สรุปข้อมูลเชิงลึกจากการสนทนา.`;
 
-      const aiResponse = await callOpenAI(aiPrompt);
+      const aiResponse = await callLLM(task, "text", "คำตอบ");
 
       await updateSession(sessionId, {
         [`responses.step${session.step}`]: userMessage,
         step: session.step + 1,
       });
 
-      // Build conversation history
       const conversation = [];
       for (let i = 1; i <= session.step; i++) {
         if (session.responses[`step${i}`]) {
@@ -133,17 +191,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // **Final Step: Generate Improved Lesson Plan (JSON)**
+    // Step 6: Improved Lesson Plan
     if (session.step > 5) {
-      console.log(
-        `🔄 Generating improved lesson plan for session: ${sessionId}`
-      );
-      const prompt = `Analyze the following teacher feedback and improve the lesson plan accordingly:\n
-                      Feedback: ${JSON.stringify(session.responses)}
-                      Original Lesson Plan: ${session.lessonPlan}
-                      Respond in JSON format with the following keys: "lesson_title", "objectives", "activities", "assessment_methods".`;
+      console.log(`🔄 Improving lesson plan for session ${sessionId}`);
 
-      const improvedLessonPlan = await callOpenAI(prompt);
+      const task = `วิเคราะห์ความคิดเห็นของครูต่อไปนี้และปรับปรุงแผนการสอนให้เหมาะสม:\n
+        ความคิดเห็น: ${JSON.stringify(session.responses)}
+        แผนการสอนเดิม: ${session.lessonPlan}`;
+
+      const type = "JSON";
+      const field = "ชื่อบทเรียน, วัตถุประสงค์, กิจกรรม, วิธีการประเมิน.";
+      const improvedLessonPlan = await callLLM(task, type, field);
 
       await updateSession(sessionId, {
         improvedLessonPlan,
@@ -161,7 +219,7 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   } catch (error) {
-    console.error(`❌ Error processing session ${sessionId}:`, error.message);
+    console.error(`❌ Error in session ${sessionId}:`, error.message);
     return NextResponse.json(
       { error: "Internal server error." },
       { status: 500 }

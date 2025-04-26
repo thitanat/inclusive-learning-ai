@@ -5,8 +5,15 @@ interface LessonTopicModalProps {
   open: boolean;
   loading: boolean;
   lessonTopic: string;
+  subject: string;
+  level: string;
+  ageRange: string;
+  studentType: string;
+  learningTime: string;
+  timeSlot: string;
+  limitation: string;
   onClose: () => void;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (field: string, value: string) => void;
   onSubmit: () => void;
 }
 
@@ -14,6 +21,13 @@ const LessonTopicModal: React.FC<LessonTopicModalProps> = ({
   open,
   loading,
   lessonTopic,
+  subject,
+  level,
+  ageRange,
+  studentType,
+  learningTime,
+  timeSlot,
+  limitation,
   onClose,
   onChange,
   onSubmit,
@@ -34,13 +48,62 @@ const LessonTopicModal: React.FC<LessonTopicModalProps> = ({
         }}
       >
         <Typography variant="h6" gutterBottom>
-          Enter Lesson Topic
+          Enter Lesson Details
         </Typography>
+        <TextField
+          fullWidth
+          label="Subject"
+          value={subject}
+          onChange={(e) => onChange("subject", e.target.value)}
+          margin="normal"
+        />
         <TextField
           fullWidth
           label="Lesson Topic"
           value={lessonTopic}
-          onChange={onChange}
+          onChange={(e) => onChange("lessonTopic", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Level"
+          value={level}
+          onChange={(e) => onChange("level", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Age Range"
+          value={ageRange}
+          onChange={(e) => onChange("ageRange", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Student Type"
+          value={studentType}
+          onChange={(e) => onChange("studentType", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Learning Time (Months)"
+          value={learningTime}
+          onChange={(e) => onChange("learningTime", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Time Slot (Hours/Week)"
+          value={timeSlot}
+          onChange={(e) => onChange("timeSlot", e.target.value)}
+          margin="normal"
+        />
+        <TextField
+          fullWidth
+          label="Limitation"
+          value={limitation}
+          onChange={(e) => onChange("limitation", e.target.value)}
           margin="normal"
         />
         <Button
@@ -48,6 +111,7 @@ const LessonTopicModal: React.FC<LessonTopicModalProps> = ({
           color="primary"
           onClick={onSubmit}
           disabled={loading}
+          sx={{ mt: 2 }}
         >
           {loading ? "Generating..." : "Submit"}
         </Button>

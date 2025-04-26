@@ -17,8 +17,17 @@ export default function ChatPage() {
   const [conversationHistory, setConversationHistory] = useState<
     { question: string; userMessage: string; aiResponse?: string }[]
   >([]);
-  const [modalOpen, setModalOpen] = useState(true); // Modal state for step 1
-  const [lessonTopic, setLessonTopic] = useState(""); // Input for lesson topic
+  const [modalOpen, setModalOpen] = useState(true);
+
+  // New fields
+  const [lessonTopic, setLessonTopic] = useState("");
+  const [subject, setSubject] = useState("");
+  const [level, setLevel] = useState("");
+  const [ageRange, setAgeRange] = useState("");
+  const [studentType, setStudentType] = useState("");
+  const [learningTime, setLearningTime] = useState("");
+  const [timeSlot, setTimeSlot] = useState("");
+  const [limitation, setLimitation] = useState("");
 
   // Generate a new session ID when the page loads
   useEffect(() => {
@@ -29,7 +38,17 @@ export default function ChatPage() {
   }, [sessionId]);
 
   const handleModalSubmit = async () => {
-    if (!lessonTopic.trim()) return;
+    if (
+      !lessonTopic.trim() ||
+      !subject.trim() ||
+      !level.trim() ||
+      !ageRange.trim() ||
+      !studentType.trim() ||
+      !learningTime.trim() ||
+      !timeSlot.trim() ||
+      !limitation.trim()
+    )
+      return;
 
     setLoading(true);
     setModalOpen(false);
@@ -38,7 +57,17 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, userMessage: lessonTopic }),
+        body: JSON.stringify({
+          sessionId,
+          lessonTopic,
+          subject,
+          level,
+          ageRange,
+          studentType,
+          learningTime,
+          timeSlot,
+          limitation,
+        }),
       });
 
       const data = await res.json();
@@ -103,8 +132,44 @@ export default function ChatPage() {
         open={modalOpen}
         loading={loading}
         lessonTopic={lessonTopic}
+        subject={subject}
+        level={level}
+        ageRange={ageRange}
+        studentType={studentType}
+        learningTime={learningTime}
+        timeSlot={timeSlot}
+        limitation={limitation}
         onClose={() => setModalOpen(false)}
-        onChange={(e) => setLessonTopic(e.target.value)}
+        onChange={(field, value) => {
+          switch (field) {
+            case "lessonTopic":
+              setLessonTopic(value);
+              break;
+            case "subject":
+              setSubject(value);
+              break;
+            case "level":
+              setLevel(value);
+              break;
+            case "ageRange":
+              setAgeRange(value);
+              break;
+            case "studentType":
+              setStudentType(value);
+              break;
+            case "learningTime":
+              setLearningTime(value);
+              break;
+            case "timeSlot":
+              setTimeSlot(value);
+              break;
+            case "limitation":
+              setLimitation(value);
+              break;
+            default:
+              break;
+          }
+        }}
         onSubmit={handleModalSubmit}
       />
 
