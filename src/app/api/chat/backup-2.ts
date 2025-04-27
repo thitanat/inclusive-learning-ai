@@ -2,24 +2,23 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { NextResponse } from "next/server";
 import { getSession, createSession, updateSession } from "@/models/session";
-import { ObjectId } from "mongodb";
 import { connectDB } from "@/lib/db";
 import { z } from "zod";
 import { getRetrieverFrom } from "@/lib/retriever";
 import { callLLM } from "@/lib/llm";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
-
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const questions: { [key: number]: string } = {
-  1: "1.คุณคิดว่าแผนการสอนนี้สามารถนำไปปฏิบัติได้จริงหรือไม่? มีข้อจำกัดอะไรบ้าง?",
-  2: "2.คุณคาดการณ์ว่าผลลัพธ์การเรียนรู้จะเป็นอย่างไร?",
-  3: "3.แผนการสอนนี้สอดคล้องกับวัตถุประสงค์หรือไม่? (โปรดระบุประเด็นสำคัญ)",
-  4: "4.คุณคิดว่าโครงสร้างของแผนการสอนนี้สมเหตุสมผลหรือไม่?",
-  5: "5.จุดอ่อนของแผนการสอนนี้คืออะไร?",
+  1: "How practical do you think this lesson plan is? Are there any limitations?",
+  2: "What do you predict the learning outcomes will be?",
+  3: "Does the lesson plan align with its objectives? (Provide key points)",
+  4: "Do you think the structure of this lesson makes sense?",
+  5: "What are the weaknesses in this lesson plan?",
 };
+
+
 
 export async function POST(req: Request) {
   await connectDB();
@@ -36,8 +35,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
-  const requestBody = await req.json();
   const {
+    sessionId,
     lessonTopic,
     subject,
     level,
@@ -46,36 +45,38 @@ export async function POST(req: Request) {
     learningTime,
     timeSlot,
     limitation,
-    userMessage,
-  } = requestBody;
+  } = await req.json();
 
-  const conversation = [];
 
-  let session = await getSession(userId); // Use userId to fetch session
 
-  if (!session) {
-    // Step 0: Validate all required fields for creating a new session
-    if (
-      !lessonTopic ||
-      !subject ||
-      !level ||
-      !ageRange ||
-      !studentType ||
-      !learningTime ||
-      !timeSlot ||
-      !limitation
-    ) {
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
-    }
-  }
+  let session = await getSession(sessionId);
 
   try {
-    // Step 0: Generate Lesson Plan
+    // Step 1: Generate Lesson Plan
     if (!session) {
+      if (
+        !sessionId ||
+        !lessonTopic ||
+        !subject ||
+        !level ||
+        !ageRange ||
+        !studentType ||
+        !learningTime ||
+        !timeSlot ||
+        !limitation
+      ) {
+        return NextResponse.json(
+          { error: "Missing required fields." },
+          { status: 400 }
+        );
+      }
+
+      console.log(`🆕 Creating new session: ${sessionId}`);
+
       const task = `ออกแบบหลักสูตรการเรียนรู้ในลักษณะห้องเรียนรวม (Inclusive Classroom) สำหรับระดับการศึกษา ${level} โดยมีช่วงอายุของผู้เรียนประมาณ ${ageRange} ปี
                     ผู้เรียนในห้องเรียนนี้มีความหลากหลายและรวมถึงกลุ่มที่ต้องการการสนับสนุนพิเศษ เช่น ${studentType}
                     หลักสูตรนี้มีจุดมุ่งหมายเพื่อสอนในรายวิชา ${subject} เรื่อง ${lessonTopic} ใช้เวลาทั้งหมด ${learningTime} เดือนโดยจัดการเรียนรู้ครั้งละ ${timeSlot} ชั่วโมง/สัปดาห์
-                    ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}`; // Task logic remains the same
+                    ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}`;
       const type = `JSON`;
       const field = `{
         "courseTitle": "...",
@@ -129,87 +130,99 @@ export async function POST(req: Request) {
           }
         }
       }`;
-      const lessonPlan = await callLLM(task, type, field, 'generate');
 
+      const lessonPlan = await callLLM(task, type
+        , field);
+      console.log("lessonPlan", lessonPlan);
 
       await createSession({
         userId: new ObjectId(userId),
-        step: 1,
+        step: 2,
         lessonPlan,
-        userResponses: {},
-        aiResponses: {},
-        conversation: [],
+        responses: {},
         improvedLessonPlan: "",
       });
 
-      return NextResponse.json({
-        type: "json",
-        lessonPlan: lessonPlan,
-        nextQuestion: questions[1],
-      });
+      try {
+        return NextResponse.json({
+          type: "json",
+          lessonPlan: lessonPlan,
+          nextQuestion: questions[1],
+        });
+      } catch (e) {
+        console.error("Invalid JSON structure:", e);
+        return NextResponse.json({
+          error: "Model did not return valid JSON.",
+          debug: lessonPlan,
+        });
+      }
     }
 
     // Step 2-5: Reflection Questions
-    if (session.step >= 1 && session.step <= 5) {
+    if (session.step >= 2 && session.step <= 5) {
       console.log(
-        `🧠 Step ${session.step}: Reflection for session ${userId} with user message ${ requestBody.userMessage}`
+        `🧠 Step ${session.step}: Reflection for session ${sessionId}`
       );
 
-      session.userResponses[`step${session.step}`] = requestBody.userMessage;
+      session.responses[`step${session.step}`] = userMessage;
 
-      // let context = "";
-      // for (let i = 1; i < session.step; i++) {
-      //   if (session.userResponses[`step${i}`]) {
-      //     context += `Question ${i}: ${questions[i]}\nUser Response: ${
-      //       session.userResponses[`step${i}`]
-      //     }\n\n`;
-      //   }
-      // }
-      const task = `คุณกำลังประเมินแผนการสอนเพื่อปรับปรุงโดยใช้วิธีการสะท้อนคิดจากผู้ใช้
-      โดยเราจะเตรียมชุดคำถามให้ผู้ใช้ได้สะท้อนคิด คุณจะต้องใช้ข้อมูลต่อไปนี้ในการสร้างคำตอบ:
-        แผนการสอนเดิม:\n${JSON.stringify(session.lessonPlan, null, 2)}
-        การสนทนาก่อนการถามตอบสะท้อนคิดหน้า:\n${session.conversation
-          .map(
-        (entry, index) =>
-          `Question ${index + 1}: ${entry.question}\nUser Response: ${entry.userMessage}\nAI Response: ${entry.response}\n`
-          )
-          .join("\n")}
-        คำถามสะท้อนคิดปัจจุบัน: "${questions[session.step]}"
-        คำตอบสะท้อนคิดล่าสุดของผู้ใช้: "${requestBody.userMessage}"
-        จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`; 
+      let context = "";
+      for (let i = 2; i < session.step; i++) {
+        if (session.responses[`step${i}`]) {
+          context += `Question ${i}: ${questions[i]}\nUser Response: ${
+            session.responses[`step${i}`]
+          }\n\n`;
+        }
+      }
 
-      const aiResponse = await callLLM(task, "text", "คำตอบ", 'followup');
-     
+      const task = `คุณกำลังประเมินแผนการสอนโดยใช้วิธีการสะท้อนการสอน
+        การสะท้อนก่อนหน้า:\n${context}
+        คำถามปัจจุบัน: "${questions[session.step]}"
+        คำตอบล่าสุดของผู้ใช้: "${userMessage}"
+        จากนี้ ให้สร้างคำตอบ AI ที่สรุปข้อมูลเชิงลึกจากการสนทนา.`;
+
+      const aiResponse = await callLLM(task, "text", "คำตอบ");
+
+      
+
+      const conversation = [];
       for (let i = 1; i <= session.step; i++) {
-        if (session.userResponses[`step${i}`]) {
+        if (session.responses[`step${i}`]) {
           conversation.push({
-            question: questions[i],
-            response: session.aiResponses[`step${i}`] || aiResponse,
-            userMessage: session.userResponses[`step${i}`],
+            response: aiResponse,
+            userMessage: session.responses[`step${i}`],
           });
         }
       }
 
-      await updateSession(userId, {
-
-        [`userResponses.step${session.step}`]: userMessage,
-        [`aiResponses.step${session.step}`]: aiResponse,
+      await updateSession(sessionId, {
+        [`responses.step${session.step}`]: userMessage,
         step: session.step + 1,
-        conversation: conversation,
+        conversation: conversation
       });
 
-      return NextResponse.json({
-        type: "text",
-        nextQuestion: questions[session.step+1],
-        conversation: conversation,
-      });
+      if (session.step <= 5) {
+        return NextResponse.json({
+          type: "text",
+          nextQuestion: questions[session.step],
+          conversation,
+        });
+      }
     }
 
     // Step 6: Improved Lesson Plan
     if (session.step > 5) {
-      const task = `...`; // Task logic remains the same
-      const improvedLessonPlan = await callLLM(task, "JSON", "...");
-      await updateSession(userId, {
+      console.log(`🔄 Improving lesson plan for session ${sessionId}`);
+
+      const task = `วิเคราะห์ความคิดเห็นของครูต่อไปนี้และปรับปรุงแผนการสอนให้เหมาะสม:\n
+        ความคิดเห็น: ${JSON.stringify(session.responses)}
+        แผนการสอนเดิม: ${session.lessonPlan}`;
+
+      const type = "JSON";
+      const field = "ชื่อบทเรียน, วัตถุประสงค์, กิจกรรม, วิธีการประเมิน.";
+      const improvedLessonPlan = await callLLM(task, type, field);
+
+      await updateSession(sessionId, {
         improvedLessonPlan,
         step: "completed",
       });
@@ -225,14 +238,13 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   } catch (error) {
-    console.error(`❌ Error in session for user ${userId}:`, error.message);
+    console.error(`❌ Error in session ${sessionId}:`, error.message);
     return NextResponse.json(
       { error: "Internal server error." },
       { status: 500 }
     );
   }
 }
-
 
 export async function GET(req: Request) {
   console.log("GET request received");
@@ -252,11 +264,13 @@ export async function GET(req: Request) {
 
   const session = await getSession(userId);
   if (!session) {
-    return NextResponse.json({ step: 1, lessonPlan: null }, { status: 200 });
+    return NextResponse.json({ error: "Session not found." }, { status: 404 });
   }
+
   return NextResponse.json({
-    step: session.step || 1,
-    lessonPlan: session.lessonPlan || null,
+    step: session.step,
     conversationHistory: session.conversation || [],
+    lessonPlan: session.lessonPlan || null,
+    nextQuestion: session.nextQuestion || "",
   });
 }

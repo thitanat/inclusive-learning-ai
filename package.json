@@ -20,6 +20,7 @@
     "@mui/styles": "*",
     "@pinecone-database/pinecone": "^5.1.1",
     "axios": "^1.7.9",
+    "bcrypt": "^5.1.1",
     "cheerio": "^1.0.0",
     "formidable-serverless": "^1.1.1",
     "fs": "^0.0.1-security",
