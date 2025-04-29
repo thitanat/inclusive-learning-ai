@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Container, Grid, Typography } from "@mui/material";
+import { Container, Grid, Typography, Button } from "@mui/material";
 import axios from "axios"; // Import axios
 import ChatInput from "../components/ChatInput";
 import JsonResponse from "../components/JsonResponse";
@@ -37,41 +37,48 @@ export default function ChatPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Please log in first.");
+      // Redirect to login page if no token is found
       router.push("/login");
     } else {
-      const decodedToken = JSON.parse(atob(token.split(".")[1])); // Decode JWT to extract userId
-      setUserId(decodedToken.userId);
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1])); // Decode JWT to extract userId
+        setUserId(decodedToken.userId);
 
-      // Fetch session data from the server
-      axios
-        .get("/api/chat", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          const data = res.data;
-          if (data.error) {
-            console.error(data.error);
-            return;
-          }
+        // Fetch session data from the server
+        axios
+          .get("/api/chat", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          .then((res) => {
+            const data = res.data;
+            if (data.error) {
+              console.error(data.error);
+              router.push("/login"); // Redirect to login if there's an error
+              return;
+            }
 
-          // Update state with session data
-          const fetchedStep = data.step || 1;
-          setStep(fetchedStep);
-          setConversationHistory(data.conversationHistory || []);
-          setJsonResponse(data.lessonPlan || null);
-          setNextQuestion(data.nextQuestion || "");
+            // Update state with session data
+            const fetchedStep = data.step || 1;
+            setStep(fetchedStep);
+            setConversationHistory(data.conversationHistory || []);
+            setJsonResponse(data.lessonPlan || null);
+            setNextQuestion(data.nextQuestion || "");
 
-          // Open modal only if step is 1
-          if (fetchedStep === 1) {
-            setModalOpen(true);
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching session data:", error);
-        });
+            // Open modal only if step is 1
+            if (fetchedStep === 1) {
+              setModalOpen(true);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching session data:", error);
+            router.push("/login"); // Redirect to login if fetching session data fails
+          });
+      } catch (error) {
+        console.error("Invalid token:", error);
+        router.push("/login"); // Redirect to login if token is invalid
+      }
     }
   }, [router]);
 
@@ -169,11 +176,26 @@ export default function ChatPage() {
     setLoading(false);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // Remove the token from localStorage
+    router.push("/login"); // Redirect to the login page
+  };
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" gutterBottom align="center">
-        Inclusive Learning - AI Lesson Plan Generator
+        Inclusive Learning
       </Typography>
+
+      {/* Logout Button */}
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={handleLogout}
+        style={{ marginBottom: "20px" }}
+      >
+        Logout
+      </Button>
 
       <LessonTopicModal
         open={step === 1 && modalOpen} // Ensure modal only opens when step is 1
