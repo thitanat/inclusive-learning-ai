@@ -65,7 +65,10 @@ export async function POST(req: Request) {
       !timeSlot ||
       !limitation
     ) {
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields." },
+        { status: 400 }
+      );
     }
   }
 
@@ -78,59 +81,63 @@ export async function POST(req: Request) {
                     ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}`; // Task logic remains the same
       const type = `JSON`;
       const field = `{
-        "courseTitle": "...",
-        "level": "...",
-        "subject": "...",
-        "durationHours": "...",
-        "unit": [
-          {
-            "unitTitle": "...",
-            "duration": "...",
-            "competencyFocus": ["...", "..."],
-            "learningOutcomes": ["..."],
-            "scenarios": "...",
-            "udlDesign": {
-              "multipleMeansOfEngagement": "...",
-              "multipleMeansOfRepresentation": "...",
-              "multipleMeansOfActionExpression": "..."
-            },
-            "activities": [
-              {
-                "activityTitle": "...",
-                "strategies": ["..."],
-                "scaffolding": true,
-                "technologySupport": ["..."],
-                "inclusionSupport": ["..."]
-              }
-            ],
-            "assessment": {
-              "formative": "...",
-              "summative": "...",
-              "diverseAssessmentMethods": ["..."],
-              "transferAssessment": {
-                "vertical": "...",
-                "horizontal": "..."
-              }
-            }
-          }
-        ],
-        "teacherDevelopment": ["..."],
-        "collaboration": {
-          "withParents": "...",
-          "withExperts": "...",
-          "withCoTeachers": "..."
-        },
-        "classroomEnvironment": {
-          "physicalFlexibility": true,
-          "emotionalSafety": true,
-          "positiveBehaviorSupport": {
-            "rules": "...",
-            "reinforcements": "..."
-          }
-        }
-      }`;
-      const lessonPlan = await callLLM(task, type, field, 'generate');
-
+  "courseInfo": {
+    "courseCode": "...",
+    "courseTitle": "...",
+    "credits": "...",
+    "instructor": "...",
+    "semester": "...",
+    "academicYear": "...",
+    "program": "...",
+    "faculty": "..."
+  },
+  "courseDescription": "...",
+  "courseObjectives": {
+    "cognitive": [
+      "..."
+    ],
+    "psychomotor": [
+      "..."
+    ],
+    "affective": [
+      "..."
+    ]
+  },
+  "weeklyPlan": [
+    {
+      "week": "...",
+      "topic": "...",
+      "hours": "...",
+      "teachingMethods": ["..."],
+      "teachingMaterials": ["..."],
+      "assessment": ["..."]
+    }
+  ],
+  "studentCenteredLearning": [
+    "..."
+  ],
+  "teachingAids": [
+    "..."
+  ],
+  "useOfTechnology": [
+    "..."
+  ],
+  "grading": {
+    "continuousAssessment": "...",
+    "midtermExam": "...",
+    "finalExam": "..."
+  },
+  "references": {
+    "mandatoryBooks": [
+      "..."
+    ],
+    "additionalBooks": [
+      "..."
+    ]
+  }
+}
+`;
+      const lessonPlan = await callLLM(task, type, field, "generate");
 
       await createSession({
         userId: new ObjectId(userId),
@@ -152,7 +159,7 @@ export async function POST(req: Request) {
     // Step 2-5: Reflection Questions
     if (session.step >= 1 && session.step <= 5) {
       console.log(
-        `🧠 Step ${session.step}: Reflection for session ${userId} with user message ${ requestBody.userMessage}`
+        `🧠 Step ${session.step}: Reflection for session ${userId} with user message ${requestBody.userMessage}`
       );
 
       session.userResponses[`step${session.step}`] = requestBody.userMessage;
@@ -170,16 +177,18 @@ export async function POST(req: Request) {
         แผนการสอนเดิม:\n${JSON.stringify(session.lessonPlan, null, 2)}
         การสนทนาก่อนการถามตอบสะท้อนคิดหน้า:\n${session.conversation
           .map(
-        (entry, index) =>
-          `Question ${index + 1}: ${entry.question}\nUser Response: ${entry.userMessage}\nAI Response: ${entry.response}\n`
+            (entry, index) =>
+              `Question ${index + 1}: ${entry.question}\nUser Response: ${
+                entry.userMessage
+              }\nAI Response: ${entry.response}\n`
           )
           .join("\n")}
         คำถามสะท้อนคิดปัจจุบัน: "${questions[session.step]}"
         คำตอบสะท้อนคิดล่าสุดของผู้ใช้: "${requestBody.userMessage}"
-        จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`; 
+        จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`;
 
-      const aiResponse = await callLLM(task, "text", "คำตอบ", 'followup');
-     
+      const aiResponse = await callLLM(task, "text", "คำตอบ", "followup");
+
       for (let i = 1; i <= session.step; i++) {
         if (session.userResponses[`step${i}`]) {
           conversation.push({
@@ -191,7 +200,6 @@ export async function POST(req: Request) {
       }
 
       await updateSession(userId, {
-
         [`userResponses.step${session.step}`]: userMessage,
         [`aiResponses.step${session.step}`]: aiResponse,
         step: session.step + 1,
@@ -200,7 +208,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         type: "text",
-        nextQuestion: questions[session.step+1],
+        nextQuestion: questions[session.step + 1],
         conversation: conversation,
       });
     }
@@ -232,7 +240,6 @@ export async function POST(req: Request) {
     );
   }
 }
-
 
 export async function GET(req: Request) {
   console.log("GET request received");
