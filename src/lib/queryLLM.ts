@@ -20,7 +20,7 @@ export async function callQueryLLM(task: string, query: string, needToRetrieve: 
     }
 
     // Retrieval and document chain process
-    const lessonPlanGuidelinePath = "src/data/curriculum.csv";
+    const lessonPlanGuidelinePath = "public/data/curriculum.csv";
     const curriculumQuery = await docsQuery(lessonPlanGuidelinePath);
     const curriculumDocs = await curriculumQuery.getRelevantDocuments(task);
     console.log("📥 Retrieved relevant guideline docs");
