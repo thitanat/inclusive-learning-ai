@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 import { connectDB } from "@/lib/db";
 import { z } from "zod";
 import { getRetrieverFrom } from "@/lib/retriever";
-import { callLLM } from "@/lib/llm";
+import { generateLLM } from "@/lib/llm";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
@@ -78,101 +78,66 @@ export async function POST(req: Request) {
       const task = `ออกแบบหลักสูตรการเรียนรู้ในลักษณะห้องเรียนรวม (Inclusive Classroom) สำหรับระดับการศึกษา ${level} โดยมีช่วงอายุของผู้เรียนประมาณ ${ageRange} ปี
                     ผู้เรียนในห้องเรียนนี้มีความหลากหลายและรวมถึงกลุ่มที่ต้องการการสนับสนุนพิเศษ เช่น ${studentType}
                     หลักสูตรนี้มีจุดมุ่งหมายเพื่อสอนในรายวิชา ${subject} เรื่อง ${lessonTopic} ใช้เวลาทั้งหมด ${learningTime} เดือนโดยจัดการเรียนรู้ครั้งละ ${timeSlot} ชั่วโมง/สัปดาห์
-                    ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}
-                    โดยมีรายละเอียดครบทุกหัวข้อ (1–10.3) ต่อไปนี้ ให้เนื้อหามีความละเอียดและเหมาะสมกับนักเรียน
-                    1. สาระสำคัญ: (หลักการสำคัญของบทเรียน)
-                    2. มาตรฐานการเรียนรู้: (อ้างอิงตามตัวชี้วัดของกลุ่มสาระ เช่น ส 1.1)
-                    3. ตัวชี้วัด: (เช่น ส 1.1 ม.4–6/1 พร้อมคำอธิบาย)
-                    4. จุดประสงค์การเรียนรู้:
-                      4.1 ความรู้: (เช่น อธิบายองค์ประกอบของศาสนา)
-                      4.2 ทักษะ/กระบวนการ: (เช่น วิเคราะห์ข้อมูล สื่อสาร อภิปรายกลุ่ม)
-                      4.3 คุณลักษณะอันพึงประสงค์: (เช่น มีวินัย ใฝ่เรียนรู้)
-                    5. สมรรถนะสำคัญ: (เลือกจาก: การคิด การสื่อสาร การแก้ปัญหา การใช้เทคโนโลยี ฯลฯ)
-                    6. สาระการเรียนรู้: (แจกแจงเนื้อหาเป็นหัวข้อย่อย)
-                    7. ชิ้นงาน/ภาระงาน: (ระบุสิ่งที่ผู้เรียนต้องทำ เช่น แบบฝึกหัด การเขียนรายงาน การนำเสนอ)
-                    8. กระบวนการจัดกิจกรรมการเรียนรู้ (Blended Learning + Inquiry 5E):
-                      8.1 ขั้นนำเข้าสู่บทเรียน: (เช่น ใช้สื่อกระตุ้น แนะนำวัตถุประสงค์)
-                      8.2 ขั้นสร้างความสนใจ (Engagement): ระยะเวลา / กิจกรรม
-                      8.3 ขั้นสำรวจและค้นหา (Exploration): ระยะเวลา / กิจกรรม
-                      8.4 ขั้นอธิบายและลงข้อสรุป (Explanation): ระยะเวลา / กิจกรรม
-                      8.5 ขั้นขยายความรู้ (Elaboration): ระยะเวลา / กิจกรรม
-                      8.6 ขั้นประเมิน (Evaluation): ระยะเวลา / กิจกรรม
-                      (แยกระหว่าง Face to Face และ Online หากมี)
-                    9. สื่อ / อุปกรณ์ / แหล่งเรียนรู้: (ระบุอย่างละเอียด)
-                    10. กระบวนการวัดและประเมินผล:
-                      10.1 วิธีวัดผล: (เช่น แบบทดสอบ การสังเกต)
-                      10.2 เครื่องมือวัดผล: (แบบประเมิน / แบบสังเกต / แบบฝึกหัด)
-                      10.3 เกณฑ์การประเมินผล: (คะแนนเต็ม / ระดับความสามารถ / ร้อยละที่ผ่านเกณฑ์)`; // Task logic remains the same
+                    ข้อจำกัดและบริบทที่ควรพิจารณา: ${limitation}`; // Task logic remains the same
       const type = `JSON`;
       const field = `{
-  "courseTitle": "",
-  "gradeLevel": "",
-  "subject": "",
-  "totalHours": 0,
-  "lesson": {
-    "lessonNumber": 0,
-    "lessonTitle": "",
-    "hours": 0,
-    "teachingDates": [],
-    "teacher": "",
-    "1_essentialUnderstanding": "",
-    "2_standards": [],
-    "3_indicators": [],
-    "4_learningObjectives": {
-      "4_1_knowledge": [],
-      "4_2_skills": [],
-      "4_3_attributes": []
-    },
-    "5_keyCompetencies": [],
-    "6_contents": [],
-    "7_assignments": [],
-    "8_learningProcess": {
-      "model": "",
-      "8_1_introduction": {
-        "mode": "",
-        "activities": []
-      },
-      "8_2_mainActivities": {
-        "8_2_1_engagement": {
-          "duration": "",
-          "mode": "",
-          "activities": []
-        },
-        "8_2_2_exploration": {
-          "duration": "",
-          "mode": "",
-          "activities": []
-        },
-        "8_2_3_explanation": {
-          "duration": "",
-          "activities": []
-        },
-        "8_2_4_elaboration": {
-          "duration": "",
-          "activities": []
-        },
-        "8_2_5_evaluation": {
-          "duration": "",
-          "mode": "",
-          "activities": []
-        }
-      }
-    },
-    "9_materials": [],
-    "10_assessment": {
-      "10_1_methods": [],
-      "10_2_tools": [],
-      "10_3_criteria": {
-        "passingScore": "",
-        "scoringDetails": {}
-      }
+  "courseInfo": {
+    "courseCode": "...",
+    "courseTitle": "...",
+    "credits": "...",
+    "instructor": "...",
+    "semester": "...",
+    "academicYear": "...",
+    "program": "...",
+    "faculty": "..."
+  },
+  "courseDescription": "...",
+  "courseObjectives": {
+    "cognitive": [
+      "..."
+    ],
+    "psychomotor": [
+      "..."
+    ],
+    "affective": [
+      "..."
+    ]
+  },
+  "weeklyPlan": [
+    {
+      "week": "...",
+      "topic": "...",
+      "hours": "...",
+      "teachingMethods": ["..."],
+      "teachingMaterials": ["..."],
+      "assessment": ["..."]
     }
+  ],
+  "studentCenteredLearning": [
+    "..."
+  ],
+  "teachingAids": [
+    "..."
+  ],
+  "useOfTechnology": [
+    "..."
+  ],
+  "grading": {
+    "continuousAssessment": "...",
+    "midtermExam": "...",
+    "finalExam": "..."
+  },
+  "references": {
+    "mandatoryBooks": [
+      "..."
+    ],
+    "additionalBooks": [
+      "..."
+    ]
   }
 }
-
-
 `;
-      const lessonPlan = await callLLM(task, type, field, "generate");
+      const lessonPlan = await callGenerateLLM(task, type, field, "generate");
 
       await createSession({
         userId: new ObjectId(userId),
@@ -222,7 +187,7 @@ export async function POST(req: Request) {
         คำตอบสะท้อนคิดล่าสุดของผู้ใช้: "${requestBody.userMessage}"
         จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`;
 
-      const aiResponse = await callLLM(task, "text", "คำตอบ", "followup");
+      const aiResponse = await callGenerateLLM(task, "text", "คำตอบ", "followup");
 
       for (let i = 1; i <= session.step; i++) {
         if (session.userResponses[`step${i}`]) {
@@ -251,7 +216,7 @@ export async function POST(req: Request) {
     // Step 6: Improved Lesson Plan
     if (session.step > 5) {
       const task = `...`; // Task logic remains the same
-      const improvedLessonPlan = await callLLM(task, "JSON", "...");
+      const improvedLessonPlan = await callGenerateLLM(task, "JSON", "...");
       await updateSession(userId, {
         improvedLessonPlan,
         step: "completed",
@@ -294,10 +259,10 @@ export async function GET(req: Request) {
 
   const session = await getSession(userId);
   if (!session) {
-    return NextResponse.json({ step: 1, lessonPlan: null }, { status: 200 });
+    return NextResponse.json({ currentStep: 0, lessonPlan: null }, { status: 200 });
   }
   return NextResponse.json({
-    step: session.step || 1,
+    currentStep: session.currentStep || 0,
     lessonPlan: session.lessonPlan || null,
     conversationHistory: session.conversation || [],
   });

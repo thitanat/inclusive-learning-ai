@@ -5,14 +5,14 @@ import { getRetrieverFrom } from "@/lib/retriever";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function callLLM(
+export async function callGenerateLLM(
   task: string,
   type: string,
   field: string,
   template: string
 ) {
   try {
-    const lessonPlanGuidelinePath = "src/data/inclusive_learning_design.pdf";
+    const lessonPlanGuidelinePath = "src/data/curriculumStandard2551.pdf";
     const lessonPlanGuidelineRetriever = await getRetrieverFrom(
       lessonPlanGuidelinePath
     );
