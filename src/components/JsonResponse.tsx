@@ -1,8 +1,8 @@
-import { Paper, Typography, Box, List, ListItem, ListItemText } from "@mui/material";
+import { Paper, Typography, Box, List, ListItem, ListItemText, Divider } from "@mui/material";
 
 export default function JsonResponse({ jsonResponse }) {
   const parsed = JSON.parse(jsonResponse);
-  if (!parsed) {
+  if (!parsed || !parsed.lesson) {
     return (
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="subtitle1">
@@ -15,90 +15,119 @@ export default function JsonResponse({ jsonResponse }) {
     );
   }
 
-  const renderWeeklyPlan = (week) => (
-    <Box key={week.week} sx={{ mb: 2 }}>
-      <Typography variant="subtitle1">สัปดาห์ที่ {week.week}: {week.topic}</Typography>
-      <Typography>จำนวนชั่วโมง: {week.hours}</Typography>
-      <Typography>วิธีการสอน: {week.teachingMethods.join(", ")}</Typography>
-      <Typography>สื่อการสอน: {week.teachingMaterials.join(", ")}</Typography>
-      <Typography>การประเมิน: {week.assessment.join(", ")}</Typography>
-    </Box>
+  const lesson = parsed.lesson;
+  const listItems = (arr) => (
+    <List dense>{arr.map((item, i) => (<ListItem key={i}><ListItemText primary={`• ${item}`} /></ListItem>))}</List>
+  );
+
+  const scoreTable = Object.entries(lesson["10_assessment"]["10_3_criteria"].scoringDetails).map(
+    ([label, score], idx) => (
+      <Typography key={idx}>• {label}: {score}</Typography>
+    )
   );
 
   return (
-    <Paper elevation={3} sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        เค้าโครงการสอน
-      </Typography>
+    <Paper elevation={3} sx={{ p: 3, maxHeight: "90vh", overflowY: "scroll" }}>
+      <Typography variant="h5" gutterBottom>แผนการจัดการเรียนรู้</Typography>
 
-      {/* Course Info */}
-      <Typography variant="h6">ข้อมูลรายวิชา</Typography>
-      <Typography>รหัสวิชา: {parsed.courseInfo.courseCode}</Typography>
-      <Typography>ชื่อวิชา: {parsed.courseInfo.courseTitle}</Typography>
-      <Typography>จำนวนหน่วยกิต: {parsed.courseInfo.credits}</Typography>
-      <Typography>ผู้สอน: {parsed.courseInfo.instructor}</Typography>
-      <Typography>ภาคการศึกษา: {parsed.courseInfo.semester} ปีการศึกษา: {parsed.courseInfo.academicYear}</Typography>
-      <Typography>สาขา: {parsed.courseInfo.program}</Typography>
-      <Typography>คณะ: {parsed.courseInfo.faculty}</Typography>
+      {/* Basic Info */}
+      <Typography><strong>ชื่อหลักสูตร:</strong> {parsed.courseTitle}</Typography>
+      <Typography><strong>ชั้น:</strong> {parsed.gradeLevel}</Typography>
+      <Typography><strong>กลุ่มสาระ:</strong> {parsed.subject}</Typography>
+      <Typography><strong>ชั่วโมงรวม:</strong> {parsed.totalHours}</Typography>
+      <Typography><strong>บทเรียน:</strong> {lesson.lessonTitle} (ชั่วโมง {lesson.hours})</Typography>
+      <Typography><strong>สอนวันที่:</strong> {lesson.teachingDates.join(", ")}</Typography>
+      <Typography><strong>ครูผู้สอน:</strong> {lesson.teacher}</Typography>
+      <Divider sx={{ my: 2 }} />
 
-      {/* Description */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">คำอธิบายรายวิชา</Typography>
-        <Typography>{parsed.courseDescription}</Typography>
+      {/* Sections */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">1. สาระสำคัญ</Typography>
+        <Typography>{lesson["1_essentialUnderstanding"]}</Typography>
       </Box>
 
-      {/* Objectives */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">จุดประสงค์รายวิชา</Typography>
-        <Typography variant="subtitle2">พุทธิพิสัย:</Typography>
-        <List>{parsed.courseObjectives.cognitive.map((obj, i) => (<ListItem key={i}><ListItemText primary={obj} /></ListItem>))}</List>
-        <Typography variant="subtitle2">ทักษะพิสัย:</Typography>
-        <List>{parsed.courseObjectives.psychomotor.map((obj, i) => (<ListItem key={i}><ListItemText primary={obj} /></ListItem>))}</List>
-        <Typography variant="subtitle2">จิตพิสัย:</Typography>
-        <List>{parsed.courseObjectives.affective.map((obj, i) => (<ListItem key={i}><ListItemText primary={obj} /></ListItem>))}</List>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">2. มาตรฐานการเรียนรู้</Typography>
+        {lesson["2_standards"].map((s, i) => (
+          <Typography key={i}>• ({s.code}) {s.description}</Typography>
+        ))}
       </Box>
 
-      {/* Weekly Plan */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">แผนการสอนรายสัปดาห์</Typography>
-        {parsed.weeklyPlan.map(renderWeeklyPlan)}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">3. ตัวชี้วัด</Typography>
+        {listItems(lesson["3_indicators"])}
       </Box>
 
-      {/* Student-Centered Learning */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">กิจกรรมที่เน้นผู้เรียนเป็นสำคัญ</Typography>
-        <Typography>{parsed.studentCenteredLearning.join(", ")}</Typography>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">4. จุดประสงค์การเรียนรู้</Typography>
+        <Typography variant="subtitle2">4.1 ด้านความรู้</Typography>
+        {listItems(lesson["4_learningObjectives"]["4_1_knowledge"])}
+        <Typography variant="subtitle2">4.2 ด้านทักษะ/กระบวนการ</Typography>
+        {listItems(lesson["4_learningObjectives"]["4_2_skills"])}
+        <Typography variant="subtitle2">4.3 ด้านคุณลักษณะอันพึงประสงค์</Typography>
+        {listItems(lesson["4_learningObjectives"]["4_3_attributes"])}
       </Box>
 
-      {/* Teaching Aids */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">สื่อการสอน</Typography>
-        <Typography>{parsed.teachingAids.join(", ")}</Typography>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">5. สมรรถนะสำคัญ</Typography>
+        {listItems(lesson["5_keyCompetencies"])}
       </Box>
 
-      {/* Technology Usage */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">การใช้เทคโนโลยี</Typography>
-        <Typography>{parsed.useOfTechnology.join(", ")}</Typography>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">6. สาระการเรียนรู้</Typography>
+        {listItems(lesson["6_contents"])}
       </Box>
 
-      {/* Grading */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">เกณฑ์การวัดผล</Typography>
-        <Typography>คะแนนเก็บ: {parsed.grading.continuousAssessment}</Typography>
-        <Typography>สอบกลางภาค: {parsed.grading.midtermExam}</Typography>
-        <Typography>สอบปลายภาค: {parsed.grading.finalExam}</Typography>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">7. ชิ้นงาน / ภาระงาน</Typography>
+        {listItems(lesson["7_assignments"])}
       </Box>
 
-      {/* References */}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">เอกสารอ้างอิง</Typography>
-        <Typography variant="subtitle2">หนังสือบังคับ:</Typography>
-        <List>{parsed.references.mandatoryBooks.map((book, i) => (<ListItem key={i}><ListItemText primary={book} /></ListItem>))}</List>
-        <Typography variant="subtitle2">หนังสือเพิ่มเติม:</Typography>
-        <List>{parsed.references.additionalBooks.map((book, i) => (<ListItem key={i}><ListItemText primary={book} /></ListItem>))}</List>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">8. กระบวนการจัดกิจกรรมการเรียนรู้</Typography>
+        <Typography><strong>รูปแบบ:</strong> {lesson["8_learningProcess"].model}</Typography>
+
+        <Typography variant="subtitle2">8.1 ขั้นนำเข้าสู่บทเรียน</Typography>
+        {listItems(lesson["8_learningProcess"]["8_1_introduction"].activities)}
+
+        {["8_2_1_engagement", "8_2_2_exploration", "8_2_3_explanation", "8_2_4_elaboration", "8_2_5_evaluation"].map((k, i) => {
+          const activity = lesson["8_learningProcess"]["8_2_mainActivities"][k];
+          const phaseNames = [
+            "8.2.1 ขั้นสร้างความสนใจ (Engagement)",
+            "8.2.2 ขั้นสำรวจและค้นหา (Exploration)",
+            "8.2.3 ขั้นอธิบายและลงข้อสรุป (Explanation)",
+            "8.2.4 ขั้นขยายความรู้ (Elaboration)",
+            "8.2.5 ขั้นประเมิน (Evaluation)"
+          ];
+          return (
+            <Box key={k} sx={{ mt: 1 }}>
+              <Typography variant="subtitle2">{phaseNames[i]}</Typography>
+              {activity.duration && <Typography>เวลา: {activity.duration}</Typography>}
+              {activity.mode && <Typography>รูปแบบ: {activity.mode}</Typography>}
+              {listItems(activity.activities)}
+            </Box>
+          );
+        })}
       </Box>
 
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">9. สื่อ / อุปกรณ์ / แหล่งเรียนรู้</Typography>
+        {listItems(lesson["9_materials"])}
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6">10. กระบวนการวัดและประเมินผล</Typography>
+
+        <Typography variant="subtitle2">10.1 วิธีวัดและประเมินผล</Typography>
+        {listItems(lesson["10_assessment"]["10_1_methods"])}
+
+        <Typography variant="subtitle2">10.2 เครื่องมือที่ใช้วัดและประเมินผล</Typography>
+        {listItems(lesson["10_assessment"]["10_2_tools"])}
+
+        <Typography variant="subtitle2">10.3 เกณฑ์การวัดและประเมินผล</Typography>
+        <Typography>เกณฑ์ผ่าน: {lesson["10_assessment"]["10_3_criteria"].passingScore}</Typography>
+        {scoreTable}
+      </Box>
     </Paper>
   );
 }

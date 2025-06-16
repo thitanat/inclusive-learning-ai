@@ -19,3 +19,8 @@ export async function updateSession(userId: string, updateData: any) {
     { upsert: true }
   );
 }
+
+export async function deleteSession(userId: string) {
+  const db = await connectDB();
+  return await db.collection("sessions").deleteOne({ userId: new ObjectId(userId) });
+}
