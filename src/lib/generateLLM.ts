@@ -5,14 +5,14 @@ import { getRetrieverFrom } from "@/lib/retriever";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function callLLM(
+export async function callGenerateLLM(
   task: string,
   type: string,
   field: string,
   template: string
 ) {
   try {
-    const lessonPlanGuidelinePath = "src/data/inclusive_learning_design.pdf";
+    const lessonPlanGuidelinePath = "src/data/curriculumStandard2551.pdf";
     const lessonPlanGuidelineRetriever = await getRetrieverFrom(
       lessonPlanGuidelinePath
     );
@@ -98,23 +98,8 @@ function getPrompt(template: string) {
       และข้อมูลบริบท:
       {task}
 
-      โปรดออกแบบหลักสูตรการเรียนรู้ในลักษณะห้องเรียนรวม (Inclusive Classroom) โดยคำตอบจะต้องอยู่ในรูปแบบ {type} และประกอบด้วย {field} โดยต้องมีคุณลักษณะสำคัญดังนี้:
-      - เน้นการเรียนรู้ร่วมกันระหว่างผู้เรียนทุกกลุ่ม
-      - ใช้หลัก Universal Design for Learning (UDL)
-      - มีการส่งเสริมพฤติกรรมเชิงบวก (PBIS)
-      - ใช้กลยุทธ์การสอนหลากหลาย เช่น Project-based Learning, Flipped Classroom, Peer-assisted Learning, Co-teaching และ Scaffolding
-      - ประเมินผลหลากหลายรูปแบบ ทั้งรูปธรรม เชิงกระบวนการ และการถ่ายโอนการเรียนรู้
-      - บูรณาการเทคโนโลยีช่วยเหลือและการปรับเนื้อหาให้เหมาะสมกับผู้เรียนที่มีความต้องการเฉพาะ
-      - ส่งเสริมบรรยากาศห้องเรียนที่ปลอดภัยและสนับสนุนด้านอารมณ์
-      - มีระบบความร่วมมือระหว่างครู ผู้ปกครอง และผู้เชี่ยวชาญ
-      กรุณาระบุ:
-      - ชื่อหลักสูตร
-      - รายชื่อหน่วยการเรียนรู้
-      - สมรรถนะหลักและสมรรถนะเฉพาะกลุ่มสาระที่เน้นในแต่ละหน่วย
-      - ผลลัพธ์การเรียนรู้ที่คาดหวัง
-      - กลยุทธ์และกิจกรรมการเรียนรู้ในแต่ละหน่วย
-      - แนวทางการประเมิน
-      - การสนับสนุนเฉพาะสำหรับผู้เรียนที่ต้องการการช่วยเหลือ`,
+      โปรดออกแบบหลักสูตรการเรียนรู้ในลักษณะห้องเรียนรวม (Inclusive Classroom) โดยคำตอบจะต้องอยู่ในรูปแบบ {type} และประกอบด้วย {field} โดยถึงแม้ field จะเป็นภาษาอังกฤษ แต่คำตอบในแต่ละ field จะต้องเป็นภาษาไทย:
+`,
       ],
     ]);
   }else if (template == "followup") {

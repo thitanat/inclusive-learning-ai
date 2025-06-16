@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 import { connectDB } from "@/lib/db";
 import { z } from "zod";
 import { getRetrieverFrom } from "@/lib/retriever";
-import { callLLM } from "@/lib/llm";
+import { generateLLM } from "@/lib/llm";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
   }
 }
 `;
-      const lessonPlan = await callLLM(task, type, field, "generate");
+      const lessonPlan = await callGenerateLLM(task, type, field, "generate");
 
       await createSession({
         userId: new ObjectId(userId),
@@ -187,7 +187,7 @@ export async function POST(req: Request) {
         คำตอบสะท้อนคิดล่าสุดของผู้ใช้: "${requestBody.userMessage}"
         จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`;
 
-      const aiResponse = await callLLM(task, "text", "คำตอบ", "followup");
+      const aiResponse = await callGenerateLLM(task, "text", "คำตอบ", "followup");
 
       for (let i = 1; i <= session.step; i++) {
         if (session.userResponses[`step${i}`]) {
@@ -216,7 +216,7 @@ export async function POST(req: Request) {
     // Step 6: Improved Lesson Plan
     if (session.step > 5) {
       const task = `...`; // Task logic remains the same
-      const improvedLessonPlan = await callLLM(task, "JSON", "...");
+      const improvedLessonPlan = await callGenerateLLM(task, "JSON", "...");
       await updateSession(userId, {
         improvedLessonPlan,
         step: "completed",
@@ -259,10 +259,10 @@ export async function GET(req: Request) {
 
   const session = await getSession(userId);
   if (!session) {
-    return NextResponse.json({ step: 1, lessonPlan: null }, { status: 200 });
+    return NextResponse.json({ currentStep: 0, lessonPlan: null }, { status: 200 });
   }
   return NextResponse.json({
-    step: session.step || 1,
+    currentStep: session.currentStep || 0,
     lessonPlan: session.lessonPlan || null,
     conversationHistory: session.conversation || [],
   });
