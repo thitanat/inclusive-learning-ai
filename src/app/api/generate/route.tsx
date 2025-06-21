@@ -12,6 +12,7 @@ import axios from "axios";
 import FormData from "form-data"; // <-- Add this import
 import mammoth from "mammoth";
 import puppeteer from "puppeteer";
+import { lessonPlanToText } from "@/utils/lessonPlanToText";
 
 export const runtime = "nodejs"; // Switch to Node.js runtime
 
@@ -38,19 +39,34 @@ export async function POST(request: NextRequest, { params }) {
     const standard = JSON.stringify(session.standard);
     const interimIndicators = JSON.stringify(session.interimIndicators);
     const finalIndicators = JSON.stringify(session.finalIndicators);
+    // แยกจุดประสงค์แต่ละประเภท พร้อมใส่เลขนำหน้า
+    const knowledgeObjectives = Object.values(session.objectives['จุดประสงค์ด้านความรู้']).map((value, idx) => ({
+      item: `4.1.${idx + 1} ${value}`,
+    }));
+    const skillObjectives = Object.values(session.objectives['จุดประสงค์ด้านทักษะ']).map((value, idx) => ({
+      item: `4.2.${idx + 1} ${value}`,
+    }));
+    const attributeObjectives = Object.values(session.objectives['จุดประสงค์ด้านคุณลักษณะ']).map((value, idx) => ({
+      item: `4.3.${idx + 1} ${value}`,
+    }));
     const keyCompetencies = Object.values(session.keyCompetencies).map(
-      (value) => ({
-        item: value,
+      (value, idx) => ({
+        item: `${5}.${idx + 1} ${value}`,
       })
     );
     const content = Object.values(session.content).map((value) => ({
       item: value,
     }));
+    const lessonPlanText = lessonPlanToText(session.lessonPlan);
     console.log("interimIndicators:", interimIndicators);
     console.log("finalIndicators:", finalIndicators);
     console.log("standard:", standard);
     console.log("keyCompetencies:", keyCompetencies);
     console.log("content:", content);
+    console.log("lessonPlanText:", lessonPlanText);
+    console.log("knowledgeObjectives:", knowledgeObjectives);
+    console.log("skillObjectives:", skillObjectives);
+    console.log("attributeObjectives:", attributeObjectives);
 
     //---------------- Template Format ----------------
     // Load the docx file as binary
@@ -72,6 +88,10 @@ export async function POST(request: NextRequest, { params }) {
       interimIndicators: interimIndicators,
       standard: standard,
       keyCompetencies: keyCompetencies,
+      lessonPlan: lessonPlanText,
+      knowledgeObjectives,   // เพิ่มเข้า template
+      skillObjectives,       // เพิ่มเข้า template
+      attributeObjectives,   // เพิ่มเข้า template
     });
 
     try {
@@ -91,34 +111,21 @@ export async function POST(request: NextRequest, { params }) {
     );
     fs.writeFileSync(docxPath, buf);
 
-    // Convert DOCX to HTML using mammoth
-    const { value: html } = await mammoth.convertToHtml({ path: docxPath });
+    // Read the file as a buffer to send in response
+    const fileBuffer = fs.readFileSync(docxPath);
 
-    // Launch Puppeteer to convert HTML to PDF
-    const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdfBuf = await page.pdf({ format: "A4" });
-    await browser.close();
-
-    // Set appropriate headers for PDF download
-    const response = new NextResponse(
-      pdfBuf,
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename=output_${userId}.pdf`,
-        },
-      },
-    );
-
-    // Delete the output docx file
+    // Delete the output docx file after reading
     fs.unlinkSync(docxPath);
 
-    return response;
+    // Return the file as a response
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename=curriculum_${userId}.docx`,
+      },
+    });
   } catch (error) {
     console.error("Error generating document:", error);
     return NextResponse.json(

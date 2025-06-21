@@ -8,6 +8,9 @@ import ChatInput from "../components/ChatInput";
 import JsonResponse from "../components/JsonResponse";
 import ConfigModal, { stepConfigFields } from "../components/ConfigModal"; // Renamed import
 import PdfResponse from "../components/PdfResponse";
+import dynamic from "next/dynamic";
+
+const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false });
 
 export default function ChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -36,6 +39,8 @@ export default function ChatPage() {
   });
   const [showResponse, setShowResponse] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [docxUrl, setDocxUrl] = useState<string | null>(null);
+  const [fileViewError, setFileViewError] = useState(false);
 
   const router = useRouter();
 
@@ -197,25 +202,41 @@ export default function ChatPage() {
       );
 
       const contentType = res.headers["content-type"];
-      if (contentType === "application/pdf") {
+      if (
+        contentType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ) {
+        // Handle DOCX
+        const blob = new Blob([res.data], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        const url = URL.createObjectURL(blob);
+        setDocxUrl(url);
+        setPdfUrl(null);
+        setGenerateJsonResponse(null);
+        setGenerateStep(2);
+      } else if (contentType === "application/pdf") {
         // Handle PDF
         const blob = new Blob([res.data], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
+        setDocxUrl(null);
         setGenerateJsonResponse(null);
         setGenerateStep(2);
       } else {
-        // Handle JSON
+        // Handle JSON/text
         const text = new TextDecoder().decode(res.data);
         const data = JSON.parse(text);
 
         if (data.type === "json") {
           setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
           setPdfUrl(null);
+          setDocxUrl(null);
           setGenerateStep(2);
         } else if (data.type === "text") {
           setGenerateTextResponse(data.nextQuestion || "No further questions.");
           setPdfUrl(null);
+          setDocxUrl(null);
           setGenerateJsonResponse(null);
           setGenerateStep((prev) => prev + 1);
         }
@@ -288,7 +309,7 @@ export default function ChatPage() {
       />
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        {/* <Grid item xs={12} md={6}>
           <ChatInput
             prompt={prompt}
             setPrompt={setPrompt}
@@ -297,10 +318,50 @@ export default function ChatPage() {
             handleSubmit={handleModalSubmit}
             conversationHistory={conversationHistory}
           />
-        </Grid>
+        </Grid> */}
 
-        <Grid item xs={12} md={6}>
-          <PdfResponse pdfUrl={pdfUrl} />
+        <Grid item xs={12} md={20}>
+          {docxUrl ? (
+            <>
+              {/* Download button always on top */}
+              <Button
+                variant="contained"
+                color="primary"
+                href={docxUrl}
+                download="curriculum.docx"
+                sx={{ mb: 2 }}
+              >
+                Download Curriculum (.docx)
+              </Button>
+                <Typography variant="body1" gutterBottom>
+                เอกสารอาจแสดงผลไม่ถูกต้องบนเบราว์เซอร์ กรุณากด "Download Curriculum (.docx)" เพื่อดาวน์โหลดเอกสารและเปิดด้วยโปรแกรม Microsoft Word หรือ LibreOffice
+                </Typography>
+              {!fileViewError ? (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "80vh",
+                    overflow: "auto", // Enable both x and y scrolling
+                    border: "1px solid #ccc",
+                  }}
+                >
+                  <FileViewer
+                    fileType="docx"
+                    filePath={docxUrl}
+                    onError={() => setFileViewError(true)}
+                  />
+                </div>
+              ) : (
+                <Typography color="error" sx={{ mt: 2 }}>
+                  Unable to preview DOCX. Please download the file.
+                </Typography>
+              )}
+            </>
+          ) : pdfUrl ? (
+            <PdfResponse pdfUrl={pdfUrl} />
+          ) : (
+            <Typography>No document available.</Typography>
+          )}
         </Grid>
       </Grid>
     </Container>
