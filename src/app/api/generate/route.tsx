@@ -102,23 +102,11 @@ export async function POST(request: NextRequest, { params }) {
       throw error;
     }
 
-    // Generate the output docx
+    // Generate the output docx as a buffer (in memory)
     const buf = doc.getZip().generate({ type: "nodebuffer" });
 
-    // Write the generated docx to file
-    const docxPath = path.resolve(
-      process.cwd() + `/src/data/output_${userId}.docx`
-    );
-    fs.writeFileSync(docxPath, buf);
-
-    // Read the file as a buffer to send in response
-    const fileBuffer = fs.readFileSync(docxPath);
-
-    // Delete the output docx file after reading
-    fs.unlinkSync(docxPath);
-
-    // Return the file as a response
-    return new NextResponse(fileBuffer, {
+    // Return the file as a response (no need to write/read/delete from disk)
+    return new NextResponse(buf, {
       status: 200,
       headers: {
         "Content-Type":
