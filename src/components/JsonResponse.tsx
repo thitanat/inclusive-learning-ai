@@ -1,7 +1,32 @@
 import { Paper, Typography, Box, List, ListItem, ListItemText, Divider } from "@mui/material";
 
-export default function JsonResponse({ jsonResponse }) {
-  const parsed = JSON.parse(jsonResponse);
+export default function JsonResponse({ generateJsonResponse }) {
+  if (!generateJsonResponse) {
+    return (
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="subtitle1">
+          <strong>แสดงตัวอย่างเค้าโครงการสอน</strong>
+        </Typography>
+        <Box bgcolor="grey.200" p={2} borderRadius={2} sx={{ overflowX: "auto" }}>
+          ยังไม่มีข้อมูลเค้าโครงการสอน
+        </Box>
+      </Paper>
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = typeof generateJsonResponse === "string"
+      ? JSON.parse(generateJsonResponse)
+      : generateJsonResponse;
+  } catch (e) {
+    return (
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography color="error">เกิดข้อผิดพลาดในการแปลงข้อมูล JSON</Typography>
+      </Paper>
+    );
+  }
+
   if (!parsed || !parsed.lesson) {
     return (
       <Paper elevation={3} sx={{ p: 3 }}>

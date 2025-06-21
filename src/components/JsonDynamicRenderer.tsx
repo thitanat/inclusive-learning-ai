@@ -43,6 +43,7 @@ const renderValue = (value: any, level = 0) => {
           borderRadius: level === 0 ? 0 : 1,
           border: level === 0 ? "none" : "1px solid #e0e0e0",
         }}
+        
       >
         {Object.entries(value).map(([k, v]) => {
           // If the field name is a number, render only the value

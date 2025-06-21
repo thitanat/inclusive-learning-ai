@@ -185,7 +185,7 @@ export async function POST(req: Request) {
           .join("\n")}
         คำถามสะท้อนคิดปัจจุบัน: "${questions[session.step]}"
         คำตอบสะท้อนคิดล่าสุดของผู้ใช้: "${requestBody.userMessage}"
-        จากนี้ ให้คุณเขียนวิจารย์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`;
+        จากนี้ ให้คุณเขียนวิจาร์คำตอบสะท้อนคิดล่าสุดของผู้ใช้พร้อมทั้งเสนอแนวทางในการปรับปรุงหลักสูตร`;
 
       const aiResponse = await callGenerateLLM(task, "text", "คำตอบ", "followup");
 
@@ -241,29 +241,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
-  console.log("GET request received");
-  await connectDB();
-  const token = req.headers.get("Authorization")?.split(" ")[1];
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let userId;
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    userId = decoded.userId;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-  }
-
-  const session = await getSession(userId);
-  if (!session) {
-    return NextResponse.json({ currentStep: 0, lessonPlan: null }, { status: 200 });
-  }
-  return NextResponse.json({
-    currentStep: session.currentStep || 0,
-    lessonPlan: session.lessonPlan || null,
-    conversationHistory: session.conversation || [],
-  });
-}

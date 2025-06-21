@@ -22,5 +22,5 @@ export async function updateSession(userId: string, updateData: any) {
 
 export async function deleteSession(userId: string) {
   const db = await connectDB();
-  return await db.collection("sessions").deleteOne({ userId: new ObjectId(userId) });
+  return await db.collection("sessions").deleteMany({ userId: new ObjectId(userId) });
 }

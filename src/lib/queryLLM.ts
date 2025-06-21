@@ -5,7 +5,7 @@ import { getChatPromptTemplate } from "@/lib/chatPromptTemplates";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const promptType = "query";
 export async function callQueryLLM(task: string, query: string, needToRetrieve: boolean) {
-  console.log("🔍 Calling Simple LLM with prompt:");
+  console.log("🔍 Calling Query LLM with prompt:");
   try {
     const chatModel = new ChatOpenAI({
       model: "gpt-4o",

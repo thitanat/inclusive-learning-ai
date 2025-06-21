@@ -3,40 +3,42 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Grid, Typography, Button } from "@mui/material";
-import axios from "axios"; // Import axios
+import axios from "axios";
 import ChatInput from "../components/ChatInput";
 import JsonResponse from "../components/JsonResponse";
-import LessonTopicModal, { stepcurriculumFields } from "../components/LessonTopicModal";
+import ConfigModal, { stepConfigFields } from "../components/ConfigModal"; // Renamed import
+import PdfResponse from "../components/PdfResponse";
 
 export default function ChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [textResponse, setTextResponse] = useState("");
-  const [modalResponse, setModalResponse] = useState("");
-  const [jsonResponse, setJsonResponse] = useState(null);
+  const [generateTextResponse, setGenerateTextResponse] = useState("");
+  const [configResponse, setConfigResponse] = useState("");
+  const [generateJsonResponse, setGenerateJsonResponse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [generateStep, setGenerateStep] = useState(0);
   const [nextQuestion, setNextQuestion] = useState("");
   const [conversationHistory, setConversationHistory] = useState<
     { question: string; userMessage: string; aiResponse?: string }[]
   >([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [curriculumFields, setCurriculumFields] = useState({
+  const [configStep, setConfigStep] = useState(0); // Renamed state
+  const [configFields, setConfigFields] = useState({
+    // Renamed state
     subject: "",
     lessonTopic: "",
     level: "",
     numStudents: "",
-    studentType: [{ type: "", percentage: "" }], // <-- Change here
+    studentType: [{ type: "", percentage: "" }],
     learningTime: "",
     timeSlot: "",
     limitation: "",
   });
   const [showResponse, setShowResponse] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const router = useRouter();
 
-  // Fetch session data on login or refresh
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -46,9 +48,8 @@ export default function ChatPage() {
         const decodedToken = JSON.parse(atob(token.split(".")[1]));
         setUserId(decodedToken.userId);
 
-        // Fetch session data from the server
         axios
-          .get("/api/chat", {
+          .get("/api/session", {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -61,19 +62,22 @@ export default function ChatPage() {
               return;
             }
 
-            // Restore step and currentStep from session
             const fetchedStep = data.step || 1;
-            setStep(fetchedStep);
-
-            // Set currentStep for modal navigation
-            setCurrentStep(data.currentStep ?? 0);
-            //setConversationHistory(data.conversationHistory || []);
-            //setJsonResponse(data.lessonPlan || null);
-            //setNextQuestion(data.nextQuestion || "");
-
-            // Open modal if step is within curriculum steps
+            setGenerateStep(fetchedStep);
+            // Set initial config fields if they exist
             if (fetchedStep === 1) {
               setModalOpen(true);
+            }
+            if (!data.configStep) {
+              setConfigStep(0);
+            } else {
+              setConfigStep(data.configStep - 1 ?? 0);
+            }
+            console.log(data.configStep);
+            if (data.configResponse) {
+              setConfigResponse(data.configResponse || {});
+              console.log("Config response:", data.configResponse);
+              setShowResponse(true);
             }
           })
           .catch((error) => {
@@ -88,28 +92,26 @@ export default function ChatPage() {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Remove the token from localStorage
-    router.push("/login"); // Redirect to the login page
+    localStorage.removeItem("token");
+    router.push("/login");
   };
 
-  const handleCurriculumNextStep = async () => {
+  const handleConfigNextStep = async () => {
+    // Renamed handler
     if (!showResponse) return;
-    const nextStep = currentStep + 1;
-    setCurrentStep(nextStep);
+    const nextStep = configStep + 1;
+    console.log("configStep:", configStep);
+    setConfigStep(nextStep);
     setShowResponse(false);
-    setModalResponse(""); // Clear response for next step
+    setConfigResponse("");
 
-    // If the next step has no input fields, auto-submit and show output
-    if (
-      stepcurriculumFields[nextStep] &&
-      stepcurriculumFields[nextStep].length === 0
-    ) {
+    if (stepConfigFields[nextStep] && stepConfigFields[nextStep].length === 0) {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
         const res = await axios.post(
           `/api/chat/step/${nextStep}`,
-          { ...curriculumFields, userId },
+          { ...configFields, userId },
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -117,7 +119,7 @@ export default function ChatPage() {
           }
         );
         const data = res.data;
-        setModalResponse(data.response);
+        setConfigResponse(data.response);
         setShowResponse(true);
       } catch (error) {
         console.error("Error auto-advancing step:", error);
@@ -126,27 +128,29 @@ export default function ChatPage() {
     }
   };
 
-  const handleCurriculumFieldChange = (field: string, value: any) => {
-    setShowResponse(false); // Hide response if user edits input
-    setModalResponse("");   // Clear previous response
+  const handleConfigFieldChange = (field: string, value: any) => {
+    // Renamed handler
+    setShowResponse(false);
+    setConfigResponse("");
     if (field === "studentType") {
-      setCurriculumFields((prev) => ({
+      setConfigFields((prev) => ({
         ...prev,
         studentType: value,
       }));
     } else {
-      setCurriculumFields((prev) => ({ ...prev, [field]: value }));
+      setConfigFields((prev) => ({ ...prev, [field]: value }));
     }
   };
 
-  const handleCurriculumStepSubmit = async () => {
+  const handleConfigStepSubmit = async () => {
+    // Renamed handler
     const token = localStorage.getItem("token");
     setLoading(true);
 
     try {
       const res = await axios.post(
-        `/api/chat/step/${currentStep}`,
-        { ...curriculumFields, userId },
+        `/api/chat/step/${configStep}`,
+        { ...configFields, userId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -155,7 +159,7 @@ export default function ChatPage() {
       );
 
       const data = res.data;
-      setModalResponse(data.response); // Show response
+      setConfigResponse(data.response);
       setShowResponse(true);
     } catch (error) {
       console.error("Error advancing step:", error);
@@ -164,8 +168,16 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  const handleCurriculumPreviousStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  const handleConfigPreviousStep = () => {
+    // Renamed handler
+
+    if (showResponse) {
+      setShowResponse(false);
+      setConfigResponse("");
+    } else {
+      setLoading(false);
+      setConfigStep((prev) => Math.max(prev - 1, 0));
+    }
   };
 
   const handleModalSubmit = async () => {
@@ -174,35 +186,49 @@ export default function ChatPage() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        "/api/chat",
-        { ...curriculumFields, userId },
+        "/api/generate",
+        { ...configFields, userId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          responseType: "arraybuffer", // Important for binary data
         }
       );
 
-      const data = res.data;
-      console.log("Modal submit response:", data);
-      if (data.type === "json") {
-        console.log("Received JSON response:", data.lessonPlan);
-        setJsonResponse(data.lessonPlan || data.improvedLessonPlan);
-        setStep(2);
-      } else if (data.type === "text") {
-        setTextResponse(data.nextQuestion || "No further questions.");
-        setStep((prev) => prev + 1);
-      }
+      const contentType = res.headers["content-type"];
+      if (contentType === "application/pdf") {
+        // Handle PDF
+        const blob = new Blob([res.data], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+        setGenerateJsonResponse(null);
+        setGenerateStep(2);
+      } else {
+        // Handle JSON
+        const text = new TextDecoder().decode(res.data);
+        const data = JSON.parse(text);
 
-      if (data.nextQuestion) setNextQuestion(data.nextQuestion);
-      if (data.summary) setTextResponse(data.summary);
-      if (data.conversation) {
-        setConversationHistory(data.conversation);
+        if (data.type === "json") {
+          setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
+          setPdfUrl(null);
+          setGenerateStep(2);
+        } else if (data.type === "text") {
+          setGenerateTextResponse(data.nextQuestion || "No further questions.");
+          setPdfUrl(null);
+          setGenerateJsonResponse(null);
+          setGenerateStep((prev) => prev + 1);
+        }
+
+        if (data.nextQuestion) setNextQuestion(data.nextQuestion);
+        if (data.summary) setGenerateTextResponse(data.summary);
+        if (data.conversation) {
+          setConversationHistory(data.conversation);
+        }
+        setGenerateJsonResponse(data.lessonPlan);
+        setGenerateStep(2);
+        setModalOpen(false);
       }
-      // Handle final submission response
-      setJsonResponse(data.lessonPlan);
-      setStep(2);
-      setModalOpen(false);
     } catch (error) {
       console.error("Error submitting modal:", error);
     }
@@ -235,37 +261,28 @@ export default function ChatPage() {
         Inclusive Learning
       </Typography>
 
-      {/* Logout and Clear Session Buttons */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={handleLogout}
-        >
+        <Button variant="contained" color="secondary" onClick={handleLogout}>
           Logout
         </Button>
-        <Button
-          variant="outlined"
-          color="warning"
-          onClick={handleClearSession}
-        >
+        <Button variant="outlined" color="warning" onClick={handleClearSession}>
           Clear Session
         </Button>
       </div>
 
-      <LessonTopicModal
-        open={step === 1 && modalOpen}
+      <ConfigModal
+        open={generateStep === 1 && modalOpen}
         loading={loading}
-        currentStep={currentStep}
-        curriculumFields={curriculumFields}
-        response={modalResponse}
+        configStep={configStep}
+        configFields={configFields}
+        response={configResponse}
         showResponse={showResponse}
         onClose={() => setModalOpen(false)}
-        onChange={handleCurriculumFieldChange}
-        onStepSubmit={handleCurriculumStepSubmit}
+        onChange={handleConfigFieldChange}
+        onStepSubmit={handleConfigStepSubmit}
         onSubmit={handleModalSubmit}
-        onNextStep={handleCurriculumNextStep}
-        onPreviousStep={handleCurriculumPreviousStep}
+        onNextStep={handleConfigNextStep}
+        onPreviousStep={handleConfigPreviousStep}
         maxWidth="lg"
         fullWidth={true}
       />
@@ -283,7 +300,7 @@ export default function ChatPage() {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <JsonResponse jsonResponse={jsonResponse} />
+          <PdfResponse pdfUrl={pdfUrl} />
         </Grid>
       </Grid>
     </Container>
