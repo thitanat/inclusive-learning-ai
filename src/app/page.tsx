@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Container, Grid, Typography, Button } from "@mui/material";
+import {
+  Container,
+  Grid,
+  Typography,
+  Button,
+  CircularProgress,
+  Box,
+  Backdrop,
+} from "@mui/material";
 import axios from "axios";
 import ChatInput from "../components/ChatInput";
 import JsonResponse from "../components/JsonResponse";
 import ConfigModal, { stepConfigFields } from "../components/ConfigModal"; // Renamed import
 import PdfResponse from "../components/PdfResponse";
 import dynamic from "next/dynamic";
+import LogoutIcon from "@mui/icons-material/Logout";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import DownloadIcon from "@mui/icons-material/Download";
+import LoginModal from "@/components/LoginModal";
 
 const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false });
 
@@ -41,14 +53,16 @@ export default function ChatPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [docxUrl, setDocxUrl] = useState<string | null>(null);
   const [fileViewError, setFileViewError] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
+  const fetchSession = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoginModalOpen(true);
+        return;
+      }
       try {
         const decodedToken = JSON.parse(atob(token.split(".")[1]));
         setUserId(decodedToken.userId);
@@ -63,42 +77,40 @@ export default function ChatPage() {
             const data = res.data;
             if (data.error) {
               console.error(data.error);
-              router.push("/login");
+              setLoginModalOpen(true);
               return;
             }
+            setGenerateStep(1);
 
-            const fetchedStep = data.step || 1;
-            setGenerateStep(fetchedStep);
-            // Set initial config fields if they exist
-            if (fetchedStep === 1) {
-              setModalOpen(true);
-            }
             if (!data.configStep) {
               setConfigStep(0);
+              setModalOpen(true);
             } else {
               setConfigStep(data.configStep - 1 ?? 0);
-            }
-            console.log(data.configStep);
-            if (data.configResponse) {
-              setConfigResponse(data.configResponse || {});
-              console.log("Config response:", data.configResponse);
-              setShowResponse(true);
+              if (data.configResponse) {
+                setConfigResponse(data.configResponse || {});
+                setShowResponse(true);
+              }
+              setModalOpen(true);
             }
           })
           .catch((error) => {
             console.error("Error fetching session data:", error);
-            router.push("/login");
+            setLoginModalOpen(true);
           });
       } catch (error) {
         console.error("Invalid token:", error);
-        router.push("/login");
+        setLoginModalOpen(true);
       }
-    }
+    };
+
+  useEffect(() => {
+    fetchSession();
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    router.push("/login");
+    setLoginModalOpen(true); // Show login modal after logout
   };
 
   const handleConfigNextStep = async () => {
@@ -278,92 +290,182 @@ export default function ChatPage() {
 
   return (
     <Container maxWidth="md">
-      <Typography variant="h4" gutterBottom align="center">
-        Inclusive Learning
-      </Typography>
-
-      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-        <Button variant="contained" color="secondary" onClick={handleLogout}>
-          Logout
-        </Button>
-        <Button variant="outlined" color="warning" onClick={handleClearSession}>
-          Clear Session
-        </Button>
-      </div>
-
-      <ConfigModal
-        open={generateStep === 1 && modalOpen}
-        loading={loading}
-        configStep={configStep}
-        configFields={configFields}
-        response={configResponse}
-        showResponse={showResponse}
-        onClose={() => setModalOpen(false)}
-        onChange={handleConfigFieldChange}
-        onStepSubmit={handleConfigStepSubmit}
-        onSubmit={handleModalSubmit}
-        onNextStep={handleConfigNextStep}
-        onPreviousStep={handleConfigPreviousStep}
-        maxWidth="lg"
-        fullWidth={true}
+      <LoginModal
+        open={loginModalOpen}
+        onLoginSuccess={() => {
+          setLoginModalOpen(false);
+          fetchSession(); // <-- Fetch session after login
+        }}
       />
+      {/* Backdrop Spinner for Modal */}
+      <Backdrop
+        sx={{
+          color: "#333",
+          zIndex: (theme) => theme.zIndex.modal + 1,
+          backgroundColor: "transparent",
+          backdropFilter: "blur(6px)",
+          flexDirection: "column",
+        }}
+        open={loading && modalOpen}
+      >
+        <CircularProgress color="inherit" />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          กำลังประมวลผลข้อมูลหลักสูตร กรุณารอสักครู่...
+        </Typography>
+      </Backdrop>
 
-      <Grid container spacing={3}>
-        {/* <Grid item xs={12} md={6}>
-          <ChatInput
-            prompt={prompt}
-            setPrompt={setPrompt}
-            nextQuestion={nextQuestion}
-            loading={loading}
-            handleSubmit={handleModalSubmit}
-            conversationHistory={conversationHistory}
-          />
-        </Grid> */}
+      {/* Loading Spinner for page (when modal not open) */}
+      {loading && !modalOpen && (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          sx={{ my: 4 }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
 
-        <Grid item xs={12} md={20}>
-          {docxUrl ? (
-            <>
-              {/* Download button always on top */}
+      {/* Main content with blur effect when any modal is open */}
+      <Box
+        sx={{
+          filter: loginModalOpen ? "blur(6px)" : "none",
+          pointerEvents: loginModalOpen ? "none" : "auto",
+          transition: "filter 0.3s",
+        }}
+      >
+        <Box
+          sx={{
+            boxShadow: "0px 8px 24px rgba(0,0,0,0.18)", // Dropdown-like shadow
+            borderRadius: 2,
+            p: 3,
+            backgroundColor: "#fff",
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h4" gutterBottom sx={{ flex: 1 }}>
+              Inclusive Learning
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1 }}>
               <Button
                 variant="contained"
-                color="primary"
-                href={docxUrl}
-                download="curriculum.docx"
-                sx={{ mb: 2 }}
+                color="secondary"
+                size="small"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{ minWidth: 0, px: 1.5 }}
               >
-                Download Curriculum (.docx)
+                Logout
               </Button>
-                <Typography variant="body1" gutterBottom>
-                เอกสารอาจแสดงผลไม่ถูกต้องบนเบราว์เซอร์ กรุณากด "Download Curriculum (.docx)" เพื่อดาวน์โหลดเอกสารและเปิดด้วยโปรแกรม Microsoft Word หรือ LibreOffice
-                </Typography>
-              {!fileViewError ? (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "80vh",
-                    overflow: "auto", // Enable both x and y scrolling
-                    border: "1px solid #ccc",
-                  }}
-                >
-                  <FileViewer
-                    fileType="docx"
-                    filePath={docxUrl}
-                    onError={() => setFileViewError(true)}
-                  />
-                </div>
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={<DeleteSweepIcon />}
+                onClick={handleClearSession}
+                sx={{ minWidth: 0, px: 1.5 }}
+              >
+                Clear Session
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+
+        <ConfigModal
+          open={generateStep === 1 && modalOpen}
+          loading={loading}
+          configStep={configStep}
+          configFields={configFields}
+          response={configResponse}
+          showResponse={showResponse}
+          onClose={() => setModalOpen(false)}
+          onChange={handleConfigFieldChange}
+          onStepSubmit={handleConfigStepSubmit}
+          onSubmit={handleModalSubmit}
+          onNextStep={handleConfigNextStep}
+          onPreviousStep={handleConfigPreviousStep}
+          maxWidth="lg"
+          fullWidth={true}
+        />
+
+        <Box
+          sx={{
+            boxShadow: "0px 8px 24px rgba(0,0,0,0.18)", // Dropdown-like shadow
+            borderRadius: 2,
+            p: 3,
+            backgroundColor: "#fff",
+            mb: 3,
+          }}
+        >
+          <Grid container spacing={3}>
+            {/* <Grid item xs={12} md={6}>
+            <ChatInput
+              prompt={prompt}
+              setPrompt={setPrompt}
+              nextQuestion={nextQuestion}
+              loading={loading}
+              handleSubmit={handleModalSubmit}
+              conversationHistory={conversationHistory}
+            />
+          </Grid> */}
+
+            <Grid item xs={12} md={20}>
+              {docxUrl ? (
+                <>
+                  {/* Download button always on top */}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    href={docxUrl}
+                    download="curriculum.docx"
+                    startIcon={<DownloadIcon />}
+                    sx={{ mb: 2 }}
+                  >
+                    Download Curriculum (.docx)
+                  </Button>
+                  <Typography variant="body1" gutterBottom>
+                    เอกสารอาจแสดงผลไม่ถูกต้องบนเบราว์เซอร์ กรุณากด "Download
+                    Curriculum (.docx)" เพื่อดาวน์โหลดเอกสารและเปิดด้วยโปรแกรม
+                    Microsoft Word หรือ LibreOffice
+                  </Typography>
+                  {!fileViewError ? (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "80vh",
+                        overflow: "auto", // Enable both x and y scrolling
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      <FileViewer
+                        fileType="docx"
+                        filePath={docxUrl}
+                        onError={() => setFileViewError(true)}
+                      />
+                    </div>
+                  ) : (
+                    <Typography color="error" sx={{ mt: 2 }}>
+                      Unable to preview DOCX. Please download the file.
+                    </Typography>
+                  )}
+                </>
+              ) : pdfUrl ? (
+                <PdfResponse pdfUrl={pdfUrl} />
               ) : (
-                <Typography color="error" sx={{ mt: 2 }}>
-                  Unable to preview DOCX. Please download the file.
-                </Typography>
+                <Typography>No document available.</Typography>
               )}
-            </>
-          ) : pdfUrl ? (
-            <PdfResponse pdfUrl={pdfUrl} />
-          ) : (
-            <Typography>No document available.</Typography>
-          )}
-        </Grid>
-      </Grid>
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
     </Container>
   );
 }
