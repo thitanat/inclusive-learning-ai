@@ -36,9 +36,16 @@ export async function POST(request: NextRequest, { params }) {
   }
   try {
     const session = await getSession(userId);
-    const standard = JSON.stringify(session.standard);
-    const interimIndicators = JSON.stringify(session.interimIndicators);
-    const finalIndicators = JSON.stringify(session.finalIndicators);
+    const learningArea = session.learningArea;
+    const subject = session.subject;
+    const lessonTopic = session.lessonTopic;
+    const level = session.level;
+    const StudyHours = session.StudyHours;
+    const timePerClass = session.timePerClass;
+    const keyContent = session.keyContent['สาระสำคัญ'];
+    const standard = session.standard;
+    const interimIndicators = session.interimIndicators;
+    const finalIndicators = session.finalIndicators;
     // แยกจุดประสงค์แต่ละประเภท พร้อมใส่เลขนำหน้า
     const knowledgeObjectives = Object.values(session.objectives['จุดประสงค์ด้านความรู้']).map((value, idx) => ({
       item: `4.1.${idx + 1} ${value}`,
@@ -54,20 +61,11 @@ export async function POST(request: NextRequest, { params }) {
         item: `${5}.${idx + 1} ${value}`,
       })
     );
-    const content = Object.values(session.content).map((value) => ({
-      item: value,
+    const content = Object.values(session.content).map((value, idx) => ({
+      item: `${6}.${idx + 1} ${value}`,
     }));
     const lessonPlanText = lessonPlanToText(session.lessonPlan);
-    console.log("interimIndicators:", interimIndicators);
-    console.log("finalIndicators:", finalIndicators);
-    console.log("standard:", standard);
-    console.log("keyCompetencies:", keyCompetencies);
-    console.log("content:", content);
-    console.log("lessonPlanText:", lessonPlanText);
-    console.log("knowledgeObjectives:", knowledgeObjectives);
-    console.log("skillObjectives:", skillObjectives);
-    console.log("attributeObjectives:", attributeObjectives);
-
+    
     //---------------- Template Format ----------------
     // Load the docx file as binary
     const file = fs.readFileSync(
@@ -85,6 +83,14 @@ export async function POST(request: NextRequest, { params }) {
     });
 
     doc.setData({
+      keyContent: keyContent,
+      learningArea: learningArea,
+      subject: subject,
+      lessonTopic: lessonTopic,
+      level: level,
+      StudyHours: StudyHours,
+      timePerClass: timePerClass,
+      content: content,
       interimIndicators: interimIndicators,
       standard: standard,
       keyCompetencies: keyCompetencies,
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest, { params }) {
       skillObjectives,       // เพิ่มเข้า template
       attributeObjectives,   // เพิ่มเข้า template
     });
+    console.log('lessonTopic:', lessonTopic);
 
     try {
       // Render the document (replace all occurrences of {name} and loop over {#items}{item}{/items})

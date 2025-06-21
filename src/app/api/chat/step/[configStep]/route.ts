@@ -41,17 +41,26 @@ export async function POST(request: NextRequest, { params }) {
         const standard = response0_0["มาตรฐาน"];
         const interimIndicators = response0_0["ตัวชี้วัดระหว่างทาง"];
         const finalIndicators = response0_0["ตัวชี้วัดปลายทาง"];
+        const LearningArea = response0_0["กลุ่มสาระการเรียนรู้"];
         const task0_1 = `จากข้อมูลมาตรฐานการเรียนรู้ต่อไปนี้
+
         ${JSON.stringify(standard)} ตัวชี้วัดระหว่างทาง: ${JSON.stringify(interimIndicators)} ตัวชี้วัดปลายทาง: ${JSON.stringify(finalIndicators)}
-        ให้คุณช่วยคิดหัวข้อเนื้อหาการเรียนอย่างละเอียด ตอบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4 
+        ให้คุณช่วยคิดหัวข้อสาระาการเรียนแบบละเอียด ตอบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4 
         `;
         const data0_1 = await callQueryLLM(task0_1, "0_1", false);
         const response0_1 = await extractJSON(data0_1);
         console.log("response0_1:", response0_1);
+
+        const task0_2 = `จา่กหัวข้อสาระการเรียนรู้ต่อไปนี้ ${JSON.stringify(response0_1)} ให้สรุปสาระสำคัญแบบละเอียด โดยรวมเป็น ประโยคบทสรุปสั้นๆ ตอบในรูปแบบ JSON โดยมี field เป็น "สาระสำคัญ"`
+        const data0_2 = await callQueryLLM(task0_2, "0_2", false);
+        const response0_2 = await extractJSON(data0_2);
+        console.log("response0_2:", response0_2);
         const response0 = {
           ...response0_0,
-          "เนื้อหา": response0_1,
+          "สาระการเรียนรู้": response0_1,
+          ...response0_2,
         };
+
 
         // Check if session exists
         const existingSession = await getSession(userId);
@@ -60,11 +69,13 @@ export async function POST(request: NextRequest, { params }) {
             configStep: parseInt(configStep) + 1,
             subject: body.subject,
             lessonTopic: body.lessonTopic,
+            learningArea: LearningArea,
             level: body.level,
             standard: standard,
             interimIndicators: interimIndicators,
             finalIndicators: finalIndicators,
             content: response0_1,
+            keyContent: response0_2
             // Do not update createdAt for existing session
           });
         } else {
@@ -78,6 +89,7 @@ export async function POST(request: NextRequest, { params }) {
             interimIndicators: interimIndicators,
             finalIndicators: finalIndicators,
             content: response0_1,
+            keyContent: response0_2,
             createdAt: new Date(),
           });
         }
@@ -113,24 +125,16 @@ export async function POST(request: NextRequest, { params }) {
             "5.4": "ความสามารถในการใช้ทักษะชีวิต",
         }
 
-        const task1_1 = `จากจุดประสงค์การเรียนรู้ที่ได้ ${JSON.stringify(response1_0)} ให้คุณช่วยระบุสาระการเรียนรรู้ 5 ข้อ 
-        โดยใช้หลักสูตรการศึกษาขั้นพื้นฐาน พุทธศักราช 2560 เป็นแนวทางในการระบุสาระการเรียนรู้ ให้ตอบในรูปแบบ JSON ที่ประกอบด้วย field "เลขลำดับสาระการเรียนรู้"`
-        const data1_1 = await callQueryLLM(task1_1, "1_1", false);
-        const response1_1 = await extractJSON(data1_1);
-        console.log("response1_1:", response1_1);
-
         
         await updateSession(userId, {
           configStep: parseInt(configStep) + 1,
           objectives: response1_0,
           keyCompetencies : keyCompetencies,
-          learningContent: response1_1,
         });
 
         const response1 = {
-          ...response1_0,
+          "จุดประสงค์การเรียนรู้" : response1_0,
           "สมรรถนะผู้เรียน": keyCompetencies,
-          "สาระการเรียนรู้": response1_1,
         };
 
         return NextResponse.json({
@@ -146,12 +150,12 @@ export async function POST(request: NextRequest, { params }) {
           );
         }
         const numStudents = body.numStudents || 30;
-        const studentTypes = body.studentTypes || [];  
+        const studentType = body.studentType || [];  
         const studyHours = body.studyHours || 9; // Default to 9 hours if not provided
         const timePerClass = body.timePerClass || 3; // Default to 3 hours per class if not provided
         // สร้างข้อความประเภทนักเรียนและเปอร์เซ็นต์
-        const studentTypesStr = studentTypes.length > 0
-          ? studentTypes.map(
+        const studentTypesStr = studentType.length > 0
+          ? studentType.map(
               (s: any, idx: number) =>
                 `ประเภทที่ ${idx + 1}: ${s.type} (${s.percentage}%)`
             ).join(", ")
@@ -177,10 +181,9 @@ export async function POST(request: NextRequest, { params }) {
                                 - บทบาทผู้เรียน
                                 - บทบาทครู
                                 - แนวทางการปรับกิจกรรมสำหรับผู้เรียนที่หลากหลายประเภท (inclusive classroom)
-                                    - โดยดูจากข้อมูลประเภทนักเรียนหลากหลายที่ให้มาใน อินพุต
+                                    - แยกเป็นประเภทนักเรียนที่หลากหลายและเปอร์เซ็นต์ดังนี้: ${studentTypesStr}
                           ใช้ข้อมูลอินพุตต่อไปนี้:
                           - เนื้อหา: ${JSON.stringify(session.content)}
-                          - ประเภทของนักเรียนที่หลากหลายและเปอร์เซ็นต์ (inclusive classroom): ${studentTypesStr}
                           - จำนวนชั่วโมงทั้งหมดในการสอน: ${studyHours} ชั่วโมง
                           - ระยะเวลาแต่ละคาบ: คาบละ ${timePerClass} ชั่วโมง
 
@@ -194,8 +197,10 @@ export async function POST(request: NextRequest, { params }) {
 
         await updateSession(userId, {
           configStep: parseInt(configStep) + 1,
+          StudyHours: studyHours,
+          timePerClass: timePerClass,
           numStudents: numStudents,
-          studentTypes: studentTypes,
+          studentType: studentType,
           lessonPlan: response2_0,
         });
 
