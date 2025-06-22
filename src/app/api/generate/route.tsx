@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { connectDB } from "@/lib/db";
-import { getSession, createSession, updateSession } from "@/models/session";
+import { getSession, createSession, updateSession, getSessionById, updateSessionById } from "@/models/session";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
@@ -35,7 +35,19 @@ export async function POST(request: NextRequest, { params }) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
   try {
-    const session = await getSession(userId);
+    // Parse sessionId from request body
+    const body = await request.json();
+    const sessionId = body.sessionId;
+    if (!sessionId) {
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+    }
+
+    // Fetch session by sessionId
+    const session = await getSessionById(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    }
+
     const learningArea = session.learningArea;
     const subject = session.subject;
     const lessonTopic = session.lessonTopic;
@@ -118,6 +130,9 @@ export async function POST(request: NextRequest, { params }) {
 
     // Generate the output docx as a buffer (in memory)
     const buf = doc.getZip().generate({ type: "nodebuffer" });
+
+    // Store the buffer in the session document (as a base64 string)
+    await updateSessionById(sessionId, { docxBuffer: buf.toString("base64") });
 
     // Return the file as a response (no need to write/read/delete from disk)
     return new NextResponse(buf, {
