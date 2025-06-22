@@ -190,10 +190,15 @@ export async function POST(request: NextRequest, { params }) {
                           **ห้ามใช้ตัวอย่างกิจกรรมง่ายเกินไป เช่น วาดภาพ/จับคู่คำศัพท์ เว้นแต่มีความเกี่ยวโยงกับการวิเคราะห์หรือออกแบบทางวิทยาศาสตร์จริง เช่น “วาดกราฟแสดงความเร่ง” หรือ “จับคู่แรงกับผลในระบบจริง”
                           **ทุกกิจกรรมต้องสอดคล้องกับสาระและตัวชี้วัด และมีเป้าหมายที่ระดับวิเคราะห์ ประเมินค่า หรือสร้างสรรค์ ตาม Bloom’s Taxonomy และต้องประยุกต์ใช้ความรู้ เช่น การจำลองสถานการณ์แรง, การวิเคราะห์ระบบกลไก, หรือการออกแบบสิ่งประดิษฐ์จริง
 `;
-
         const data2_0 = await callQueryLLM(task2_0, "2_0", false);
         const response2_0 = await extractJSON(data2_0);
         console.log("response2_0:", response2_0);
+
+        const task2_1 = `จากข้อมูลกิจกรรมการเรียนรู้ที่ออกแบบไว้ ${JSON.stringify(response2_0)} ให้คุณช่วยสรุปเขียนรายการ สื่อ/อุปกรณ์/แหล่งเรียนรู้รูปแบบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4`;
+        const data2_1 = await callQueryLLM(task2_1, "2_1", false);
+        const response2_1 = await extractJSON(data2_1);
+        console.log("response2_1:", response2_1);
+
 
         await updateSession(userId, {
           configStep: parseInt(configStep) + 1,
@@ -202,18 +207,61 @@ export async function POST(request: NextRequest, { params }) {
           numStudents: numStudents,
           studentType: studentType,
           lessonPlan: response2_0,
+          teachingMaterials: response2_1,
         });
 
         return NextResponse.json({
           response: response2_0,
+          teachingMaterials: response2_1,
+        });
+      } case "3": {
+        const session = await getSession(userId);
+        if (!session) {
+          return NextResponse.json(
+            { error: "Session not found" },
+            { status: 404 }
+          );
+        }
+
+        // เตรียม task สำหรับ AI
+        const task3_0 = `ออกแบบกระบวนการวัดและประเมินผลการเรียนรู้สำหรับแผนการจัดกิจกรรมการเรียนรู้ต่อไปนี้:
+                              ${JSON.stringify(session.lessonPlan)}
+
+                              โดยต้องสอดคล้องกับตัวชี้วัดระหว่างทาง: ${JSON.stringify(session.interimIndicators)}
+
+                              **คำแนะนำ**: 
+                              - แบ่งรายละเอียดเป็น 3 ส่วนหลักในรูปแบบ JSON:
+                                1. "วิธีวัดและประเมินผล" (แบ่งเป็น: วัดความรู้, วัดทักษะและกระบวนการ, วัดคุณลักษณะ, การประเมินสมรรถนะสำคัญ)
+                                2. "เครื่องมือที่ใช้วัดและประเมินผล" (เช่น แบบทดสอบ, แบบสังเกต, แบบประเมินตนเอง ฯลฯ)
+                                3. "เกณฑ์การวัดและประเมินผล" (เช่น แบบทดสอบวัดความรู้ ให้ระบุเกณฑ์คะแนนแต่ละด้าน รวมกันต้องได้ 100%)
+
+                                -วิธีวัดและประเมินผล
+                                  -วัดความรู้
+                                  -วัดทักษะและกระบวนการ
+                                  -วัดคุณลักษณะ
+                                  -การประเมินสมรรถนะสำคัญ                                
+                                -เครื่องมือที่ใช้วัดและประเมินผล                        
+                                -เกณฑ์การวัดและประเมินผล
+                                  -รูปแบบการประเมิน (1-5 แบบเช่น แบบทดสอบวัดความรู้, แบบฝึกหัดทบทวนท้ายบทเรียน เป็นต้น )
+                                    -ระบุคะแนนเต็มของแต่ละรูปแบบ
+                                    -ระบุเกณฑ์ย่อยของแต่ละรูปแบบ
+                                    -รวมทุกรูปแบบ"ต้องได้ "100%" โดยอาจให้น้ำหนักแต่ละรูปแบบแตกต่างกันได้
+                         
+                              ตอบกลับเป็น JSON เท่านั้น
+        `;
+
+        const data3_0 = await callQueryLLM(task3_0, "3_0", false);
+        const response3_0 = await extractJSON(data3_0);
+
+        await updateSession(userId, {
+          configStep: parseInt(configStep) + 1,
+          evaluation: response3_0,
+        });
+
+        return NextResponse.json({
+          response: response3_0,
         });
       }
-      // Add more cases for other steps as needed
-      default:
-        return NextResponse.json(
-          { error: "Invalid step" },
-          { status: 400 }
-        );
     }
   } catch (error) {
     return NextResponse.json(

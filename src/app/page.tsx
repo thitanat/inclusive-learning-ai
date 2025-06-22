@@ -310,7 +310,7 @@ export default function ChatPage() {
       >
         <CircularProgress color="inherit" />
         <Typography variant="h6" sx={{ mt: 2 }}>
-          กำลังประมวลผลข้อมูลหลักสูตร กรุณารอสักครู่...
+          กำลังประมวลผลข้อมูลหลักสูตร อาจใช้เวลา 2-3 นาที
         </Typography>
       </Backdrop>
 

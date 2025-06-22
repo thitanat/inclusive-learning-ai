@@ -65,6 +65,11 @@ export async function POST(request: NextRequest, { params }) {
       item: `${6}.${idx + 1} ${value}`,
     }));
     const lessonPlanText = lessonPlanToText(session.lessonPlan);
+    const teachingMaterials = Object.values(session.teachingMaterials).map((value, idx) => ({
+      item: `${9}.${idx + 1} ${value}`,
+    }));
+    const evaluation = lessonPlanToText(session.evaluation);
+
     
     //---------------- Template Format ----------------
     // Load the docx file as binary
@@ -95,9 +100,11 @@ export async function POST(request: NextRequest, { params }) {
       standard: standard,
       keyCompetencies: keyCompetencies,
       lessonPlan: lessonPlanText,
-      knowledgeObjectives,   // เพิ่มเข้า template
-      skillObjectives,       // เพิ่มเข้า template
-      attributeObjectives,   // เพิ่มเข้า template
+      knowledgeObjectives,   
+      skillObjectives,      
+      attributeObjectives,
+      teachingMaterials,
+      evaluation, 
     });
     console.log('lessonTopic:', lessonTopic);
 

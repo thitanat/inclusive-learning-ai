@@ -30,6 +30,7 @@ export const stepConfigFields = [
     { label: "เวลาในการสอนทั้งหมด", field: "studyHours" },
     { label: "เวลาต่อคาบ", field: "timePerClass" },
   ],
+  [], 
 ];
 
 const ConfigModal: React.FC<ConfigModalProps> = ({ // Renamed
@@ -68,8 +69,8 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ // Renamed
           {currentFields.length === 1
             ? currentFields[0].label
             : currentFields.length === 0
-            ? "กำลังค้นหาค้นหาข้อมูลหลักสูตร..."
-            : "กรุณากรอกข้อมูลพื้นฐานเกี่ยวกับชั้นเรียนของท่าน"}
+            ? "กำลังประมวลผล..."
+            : "โปรดระบุข้อมูลสำหรับการออกแบบแผนการสอน"}
         </Typography>
         {/* Show input fields only if response is not shown */}
         {!showResponse && currentFields.length > 0 &&
