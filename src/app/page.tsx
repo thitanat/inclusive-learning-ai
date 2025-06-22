@@ -21,6 +21,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import DownloadIcon from "@mui/icons-material/Download";
 import LoginModal from "@/components/LoginModal";
+import ListIcon from "@mui/icons-material/List"; // Add this import
 
 const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false });
 
@@ -54,58 +55,93 @@ export default function ChatPage() {
   const [docxUrl, setDocxUrl] = useState<string | null>(null);
   const [fileViewError, setFileViewError] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
 
   const router = useRouter();
 
-  const fetchSession = () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoginModalOpen(true);
-        return;
-      }
-      try {
-        const decodedToken = JSON.parse(atob(token.split(".")[1]));
-        setUserId(decodedToken.userId);
+  // Modified fetchSession to accept sessionId
+  const fetchSession = (sessionId?: string | null) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoginModalOpen(true);
+      return;
+    }
+    try {
+      console.log("Fetching session with ID:", sessionId);
+      const decodedToken = JSON.parse(atob(token.split(".")[1]));
+      setUserId(decodedToken.userId);
 
-        axios
-          .get("/api/session", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-          .then((res) => {
-            const data = res.data;
-            if (data.error) {
-              console.error(data.error);
-              setLoginModalOpen(true);
-              return;
-            }
-            setGenerateStep(1);
-
+      axios
+        .post(
+          "/api/session",
+          { sessionId: sessionId},
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        .then((res) => {
+          const data = res.data;
+          if (data.error) {
+            console.error(data.error);
+            setLoginModalOpen(true);
+            return;
+          }
+          if (data.docxBuffer) {
+            console.log("Received DOCX buffer, setting modal to closed");
+            setModalOpen(false);
+            const buffer = Buffer.from(data.docxBuffer, "base64");
+            const url = URL.createObjectURL(
+              new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              })
+            );
+            setDocxUrl(url);
+          } else {
+            console.log("No DOCX buffer received, setting docxUrl to null");
+            setDocxUrl(null);
+            setModalOpen(true);
             if (!data.configStep) {
+              console.log("No config step found, resetting to step 0");
               setConfigStep(0);
-              setModalOpen(true);
+              setShowResponse(false);
             } else {
               setConfigStep(data.configStep - 1 ?? 0);
               if (data.configResponse) {
+                console.log("Setting config response:", data.configResponse);
                 setConfigResponse(data.configResponse || {});
                 setShowResponse(true);
               }
-              setModalOpen(true);
+             
             }
-          })
-          .catch((error) => {
-            console.error("Error fetching session data:", error);
-            setLoginModalOpen(true);
-          });
-      } catch (error) {
-        console.error("Invalid token:", error);
-        setLoginModalOpen(true);
-      }
-    };
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching session data:", error);
+          setLoginModalOpen(true);
+        });
+    } catch (error) {
+      console.error("Invalid token:", error);
+      setLoginModalOpen(true);
+    }
+  };
 
   useEffect(() => {
-    fetchSession();
+    if (selectedSessionId) {
+      localStorage.setItem("selectedSessionId", selectedSessionId);
+    } else {
+      localStorage.removeItem("selectedSessionId");
+    }
+  }, [selectedSessionId]);
+
+  useEffect(() => {
+    if (selectedSessionId) {
+      console.log("called useEffect");
+      setLoginModalOpen(false);
+      fetchSession(selectedSessionId);
+    } else {
+      setLoginModalOpen("session");
+    }
+    // eslint-disable-next-line
   }, [router]);
 
   const handleLogout = () => {
@@ -128,7 +164,7 @@ export default function ChatPage() {
         const token = localStorage.getItem("token");
         const res = await axios.post(
           `/api/chat/step/${nextStep}`,
-          { ...configFields, userId },
+          { ...configFields, sessionId: selectedSessionId },
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -167,7 +203,7 @@ export default function ChatPage() {
     try {
       const res = await axios.post(
         `/api/chat/step/${configStep}`,
-        { ...configFields, userId },
+        { ...configFields, sessionId: selectedSessionId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -185,15 +221,31 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  const handleConfigPreviousStep = () => {
-    // Renamed handler
-
+  const handleConfigPreviousStep = async () => {
     if (showResponse) {
       setShowResponse(false);
       setConfigResponse("");
     } else {
+      setLoading(true);
+      try {
+        setConfigStep((prev) => Math.max(prev - 1, 0));
+        const token = localStorage.getItem("token");
+        const res = await axios.post(
+          "/api/session",
+          { sessionId: selectedSessionId, configStep: configStep },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = res.data;
+        setConfigResponse(data.configResponse || "");
+        setShowResponse(true);
+      } catch (error) {
+        console.error("Error fetching previous session step:", error);
+      }
       setLoading(false);
-      setConfigStep((prev) => Math.max(prev - 1, 0));
     }
   };
 
@@ -204,7 +256,7 @@ export default function ChatPage() {
       const token = localStorage.getItem("token");
       const res = await axios.post(
         "/api/generate",
-        { ...configFields, userId },
+        { ...configFields, userId, sessionId: selectedSessionId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -226,7 +278,6 @@ export default function ChatPage() {
         setDocxUrl(url);
         setPdfUrl(null);
         setGenerateJsonResponse(null);
-        setGenerateStep(2);
       } else if (contentType === "application/pdf") {
         // Handle PDF
         const blob = new Blob([res.data], { type: "application/pdf" });
@@ -234,7 +285,6 @@ export default function ChatPage() {
         setPdfUrl(url);
         setDocxUrl(null);
         setGenerateJsonResponse(null);
-        setGenerateStep(2);
       } else {
         // Handle JSON/text
         const text = new TextDecoder().decode(res.data);
@@ -244,24 +294,43 @@ export default function ChatPage() {
           setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
           setPdfUrl(null);
           setDocxUrl(null);
-          setGenerateStep(2);
         } else if (data.type === "text") {
           setGenerateTextResponse(data.nextQuestion || "No further questions.");
           setPdfUrl(null);
           setDocxUrl(null);
           setGenerateJsonResponse(null);
-          setGenerateStep((prev) => prev + 1);
         }
-
-        if (data.nextQuestion) setNextQuestion(data.nextQuestion);
-        if (data.summary) setGenerateTextResponse(data.summary);
-        if (data.conversation) {
-          setConversationHistory(data.conversation);
-        }
-        setGenerateJsonResponse(data.lessonPlan);
-        setGenerateStep(2);
-        setModalOpen(false);
       }
+
+      // Save reflection if present (last step)
+      if (
+        configFields.reflection1 ||
+        configFields.reflection2 ||
+        configFields.reflection3 ||
+        configFields.reflection4 ||
+        configFields.reflection5
+      ) {
+        await axios.post(
+          "/api/session/reflection",
+          {
+            sessionId: selectedSessionId,
+            reflection: {
+              reflection1: configFields.reflection1,
+              reflection2: configFields.reflection2,
+              reflection3: configFields.reflection3,
+              reflection4: configFields.reflection4,
+              reflection5: configFields.reflection5,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      setModalOpen(false);
     } catch (error) {
       console.error("Error submitting modal:", error);
     }
@@ -291,10 +360,13 @@ export default function ChatPage() {
   return (
     <Container maxWidth="md">
       <LoginModal
-        open={loginModalOpen}
-        onLoginSuccess={() => {
+        open={!!loginModalOpen}
+        forceSessionStep={loginModalOpen === "session"}
+        onLoginSuccess={(sessionId) => {
+          console.log("Login successful, sessionId:", sessionId);
           setLoginModalOpen(false);
-          fetchSession(); // <-- Fetch session after login
+          setSelectedSessionId(sessionId);
+          fetchSession(sessionId);
         }}
       />
       {/* Backdrop Spinner for Modal */}
@@ -363,24 +435,25 @@ export default function ChatPage() {
                 onClick={handleLogout}
                 sx={{ minWidth: 0, px: 1.5 }}
               >
-                Logout
+                ออกจากระบบ
               </Button>
+              {/* Session Selection Button */}
               <Button
                 variant="outlined"
-                color="warning"
+                color="primary"
                 size="small"
-                startIcon={<DeleteSweepIcon />}
-                onClick={handleClearSession}
+                startIcon={<ListIcon />}
+                onClick={() => setLoginModalOpen("session")}
                 sx={{ minWidth: 0, px: 1.5 }}
               >
-                Clear Session
+                แผนการสอนของคุณ
               </Button>
             </Box>
           </Box>
         </Box>
 
         <ConfigModal
-          open={generateStep === 1 && modalOpen}
+          open={modalOpen}
           loading={loading}
           configStep={configStep}
           configFields={configFields}
@@ -394,6 +467,7 @@ export default function ChatPage() {
           onPreviousStep={handleConfigPreviousStep}
           maxWidth="lg"
           fullWidth={true}
+          onSectionSelection={() => setLoginModalOpen("session")} // <-- Add this line
         />
 
         <Box

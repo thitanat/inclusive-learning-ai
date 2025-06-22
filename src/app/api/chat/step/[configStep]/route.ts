@@ -4,15 +4,13 @@ import { callQueryLLM } from "@/lib/queryLLM";
 import { callAutoGPT } from "@/lib/autoGPT";
 import { ObjectId } from "mongodb";
 import { connectDB } from "@/lib/db";
-import { getSession, createSession, updateSession } from "@/models/session";
+import { getSessionById, createSession, updateSessionById } from "@/models/session";
 import jwt from "jsonwebtoken";
 import { extractJSON } from "@/utils/extractJSON";
 
 export async function POST(request: NextRequest, { params }) {
   const { configStep } = await params;
-  //connecting to the database
   await connectDB();
-  //user authentication
   const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
   const token = request.headers.get("Authorization")?.split(" ")[1];
   if (!token) {
@@ -22,22 +20,30 @@ export async function POST(request: NextRequest, { params }) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     userId = decoded.userId;
-    console.log("Decoded userId:", userId);
   } catch {
-    console.error("Invalid token");
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
-    console.log("Received body:", body);
+    const sessionId = body.sessionId;
+    if (!sessionId) {
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+    }
+
+    // Always fetch session by sessionId
+    const session = await getSessionById(sessionId);
+    if (!session || session.userId?.toString() !== userId) {
+      return NextResponse.json({ error: "Session not found or unauthorized" }, { status: 404 });
+    }
+
+    console.log(`Processing config step: ${configStep} for sessionId: ${sessionId}`);
 
     switch (configStep) {
       case "0": {
         const task0_0 = ` วิชา: ${body.subject} เนื้อหา: ${body.lessonTopic}ระดับชั้น: ${body.level}`;
         const data0_0 = await callQueryLLM(task0_0, "0_0", true);
         const response0_0 = await extractJSON(data0_0);
-        console.log("response0_0:", response0_0);
         const standard = response0_0["มาตรฐาน"];
         const interimIndicators = response0_0["ตัวชี้วัดระหว่างทาง"];
         const finalIndicators = response0_0["ตัวชี้วัดปลายทาง"];
@@ -49,66 +55,36 @@ export async function POST(request: NextRequest, { params }) {
         `;
         const data0_1 = await callQueryLLM(task0_1, "0_1", false);
         const response0_1 = await extractJSON(data0_1);
-        console.log("response0_1:", response0_1);
 
         const task0_2 = `จา่กหัวข้อสาระการเรียนรู้ต่อไปนี้ ${JSON.stringify(response0_1)} ให้สรุปสาระสำคัญแบบละเอียด โดยรวมเป็น ประโยคบทสรุปสั้นๆ ตอบในรูปแบบ JSON โดยมี field เป็น "สาระสำคัญ"`
         const data0_2 = await callQueryLLM(task0_2, "0_2", false);
         const response0_2 = await extractJSON(data0_2);
-        console.log("response0_2:", response0_2);
         const response0 = {
           ...response0_0,
           "สาระการเรียนรู้": response0_1,
           ...response0_2,
         };
 
-
-        // Check if session exists
-        const existingSession = await getSession(userId);
-        if (existingSession) {
-          await updateSession(userId, {
-            configStep: parseInt(configStep) + 1,
-            subject: body.subject,
-            lessonTopic: body.lessonTopic,
-            learningArea: LearningArea,
-            level: body.level,
-            standard: standard,
-            interimIndicators: interimIndicators,
-            finalIndicators: finalIndicators,
-            content: response0_1,
-            keyContent: response0_2
-            // Do not update createdAt for existing session
-          });
-        } else {
-          await createSession({
-            userId: new ObjectId(body.userId),
-            configStep: parseInt(configStep) + 1,
-            subject: body.subject,
-            lessonTopic: body.lessonTopic,
-            level: body.level,
-            standard: standard,
-            interimIndicators: interimIndicators,
-            finalIndicators: finalIndicators,
-            content: response0_1,
-            keyContent: response0_2,
-            createdAt: new Date(),
-          });
-        }
+        await updateSessionById(sessionId, {
+          configStep: parseInt(configStep) + 1,
+          subject: body.subject,
+          lessonTopic: body.lessonTopic,
+          learningArea: LearningArea,
+          level: body.level,
+          standard: standard,
+          interimIndicators: interimIndicators,
+          finalIndicators: finalIndicators,
+          content: response0_1,
+          keyContent: response0_2
+        });
 
         return NextResponse.json({
           response: response0,
         });
       }
-      case "1": { 
-        console.log("case 1");
-        const session = await getSession(userId);
-        if (!session) {
-          return NextResponse.json(
-            { error: "Session not found" },
-            { status: 404 }
-          );
-        }
-        const intervalIndicators = session.interimIndicators
-        const finalIndicators = session.finalIndicators
+      case "1": {
+        const intervalIndicators = session.interimIndicators;
+        const finalIndicators = session.finalIndicators;
 
         const task1_0 = `ออกแบบจุดประสงค์การเรียนรู้ 3 ด้านโดยมี ด้านความรู้, ด้านทักษะ และด้านคุณลักษณะ
         สำหรับวิชา: ${session.subject} เนื้อหา: ${session.content} ระดับชั้น: ${session.level} โดยจะต้องตอบสนองตัวชี้วัด ${intervalIndicators} และ ${finalIndicators}
@@ -119,21 +95,20 @@ export async function POST(request: NextRequest, { params }) {
         const response1_0 = await extractJSON(data1_0);
 
         const keyCompetencies = {
-            "5.1": "ความสามารถในการสื่อสาร",
-            "5.2": "ความสามารถในการคิด",
-            "5.3": "ความสามารถในการแก้ปัญหา",
-            "5.4": "ความสามารถในการใช้ทักษะชีวิต",
-        }
+          "5.1": "ความสามารถในการสื่อสาร",
+          "5.2": "ความสามารถในการคิด",
+          "5.3": "ความสามารถในการแก้ปัญหา",
+          "5.4": "ความสามารถในการใช้ทักษะชีวิต",
+        };
 
-        
-        await updateSession(userId, {
+        await updateSessionById(sessionId, {
           configStep: parseInt(configStep) + 1,
           objectives: response1_0,
-          keyCompetencies : keyCompetencies,
+          keyCompetencies: keyCompetencies,
         });
 
         const response1 = {
-          "จุดประสงค์การเรียนรู้" : response1_0,
+          "จุดประสงค์การเรียนรู้": response1_0,
           "สมรรถนะผู้เรียน": keyCompetencies,
         };
 
@@ -142,18 +117,10 @@ export async function POST(request: NextRequest, { params }) {
         });
       }
       case "2": {
-        const session = await getSession(userId);
-        if (!session) {
-          return NextResponse.json(
-            { error: "Session not found" },
-            { status: 404 }
-          );
-        }
         const numStudents = body.numStudents || 30;
-        const studentType = body.studentType || [];  
-        const studyHours = body.studyHours || 9; // Default to 9 hours if not provided
-        const timePerClass = body.timePerClass || 3; // Default to 3 hours per class if not provided
-        // สร้างข้อความประเภทนักเรียนและเปอร์เซ็นต์
+        const studentType = body.studentType || [];
+        const studyHours = body.studyHours || 9;
+        const timePerClass = body.timePerClass || 3;
         const studentTypesStr = studentType.length > 0
           ? studentType.map(
               (s: any, idx: number) =>
@@ -161,7 +128,6 @@ export async function POST(request: NextRequest, { params }) {
             ).join(", ")
           : "ไม่ระบุประเภทนักเรียน";
 
-        // Example: Use session.Activities and other session data to generate a lesson plan
         const task2_0 = `ออกแบบกิจกรรมการจัดการเรียนรู้แบบ UDL โดยคำนึงถึงความแตกต่างของนักเรียนแต่ละประเภทในห้อง (Inclusive Classroom)
                           โดยคุณจะต้องค้นหาความรู้เชิงลึกเกี่ยวกับเนื่อหาของบนเรียนนั้นๆ เพื่อใช้ในการออกแบบกิจกรรมการเรียนรู้ที่เหมาะสม
                           ให้ตอบกลับในรูปแบบ JSON โดยใช้ลำดับหัวข้อเริ่มจาก 8 และลงลึกตามกิจกรรม เช่น 8.1, 8.1.1 ฯลฯ
@@ -192,15 +158,12 @@ export async function POST(request: NextRequest, { params }) {
 `;
         const data2_0 = await callQueryLLM(task2_0, "2_0", false);
         const response2_0 = await extractJSON(data2_0);
-        console.log("response2_0:", response2_0);
 
         const task2_1 = `จากข้อมูลกิจกรรมการเรียนรู้ที่ออกแบบไว้ ${JSON.stringify(response2_0)} ให้คุณช่วยสรุปเขียนรายการ สื่อ/อุปกรณ์/แหล่งเรียนรู้รูปแบบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4`;
         const data2_1 = await callQueryLLM(task2_1, "2_1", false);
         const response2_1 = await extractJSON(data2_1);
-        console.log("response2_1:", response2_1);
 
-
-        await updateSession(userId, {
+        await updateSessionById(sessionId, {
           configStep: parseInt(configStep) + 1,
           StudyHours: studyHours,
           timePerClass: timePerClass,
@@ -214,16 +177,8 @@ export async function POST(request: NextRequest, { params }) {
           response: response2_0,
           teachingMaterials: response2_1,
         });
-      } case "3": {
-        const session = await getSession(userId);
-        if (!session) {
-          return NextResponse.json(
-            { error: "Session not found" },
-            { status: 404 }
-          );
-        }
-
-        // เตรียม task สำหรับ AI
+      }
+      case "3": {
         const task3_0 = `ออกแบบกระบวนการวัดและประเมินผลการเรียนรู้สำหรับแผนการจัดกิจกรรมการเรียนรู้ต่อไปนี้:
                               ${JSON.stringify(session.lessonPlan)}
 
@@ -253,7 +208,7 @@ export async function POST(request: NextRequest, { params }) {
         const data3_0 = await callQueryLLM(task3_0, "3_0", false);
         const response3_0 = await extractJSON(data3_0);
 
-        await updateSession(userId, {
+        await updateSessionById(sessionId, {
           configStep: parseInt(configStep) + 1,
           evaluation: response3_0,
         });

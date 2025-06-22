@@ -3,10 +3,10 @@ import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json();
+  const { email, password, firstName, lastName } = await req.json();
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+  if (!email || !password || !firstName || !lastName) {
+    return NextResponse.json({ error: "Email, password, firstName, and lastName are required." }, { status: 400 });
   }
 
   const db = await connectDB();
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  await db.collection("users").insertOne({ email, password: hashedPassword });
+  await db.collection("users").insertOne({ email, password: hashedPassword, firstName, lastName });
 
   return NextResponse.json({ message: "User registered successfully." });
 }
