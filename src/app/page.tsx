@@ -7,9 +7,9 @@ import {
   Grid,
   Typography,
   Button,
+  Backdrop,
   CircularProgress,
   Box,
-  Backdrop,
 } from "@mui/material";
 import axios from "axios";
 import ChatInput from "../components/ChatInput";
@@ -359,35 +359,38 @@ export default function ChatPage() {
 
   return (
     <Container maxWidth="md">
+      {/* Page-level loading backdrop (shows only if both modals are closed) */}
+      <Backdrop
+        open={loading && !modalOpen && !loginModalOpen}
+        sx={{
+          color: "#333",
+          zIndex: (theme) => theme.zIndex.drawer + 2,
+          backgroundColor: "rgba(255,255,255,0.7)",
+          backdropFilter: "blur(6px)",
+          position: "fixed",
+        }}
+      >
+        <CircularProgress color="inherit" />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          กำลังประมวลผล...
+        </Typography>
+      </Backdrop>
+
       <LoginModal
         open={!!loginModalOpen}
         forceSessionStep={loginModalOpen === "session"}
         onLoginSuccess={(sessionId) => {
+          setLoading(true);
           console.log("Login successful, sessionId:", sessionId);
           setLoginModalOpen(false);
           setSelectedSessionId(sessionId);
           fetchSession(sessionId);
+          setLoading(false);
         }}
       />
-      {/* Backdrop Spinner for Modal */}
-      <Backdrop
-        sx={{
-          color: "#333",
-          zIndex: (theme) => theme.zIndex.modal + 1,
-          backgroundColor: "transparent",
-          backdropFilter: "blur(6px)",
-          flexDirection: "column",
-        }}
-        open={loading && modalOpen}
-      >
-        <CircularProgress color="inherit" />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          กำลังประมวลผลข้อมูลหลักสูตร อาจใช้เวลา 2-3 นาที
-        </Typography>
-      </Backdrop>
 
-      {/* Loading Spinner for page (when modal not open) */}
-      {loading && !modalOpen && (
+      {/* Remove the old loading spinner for page (when modal not open) */}
+      {/* {loading && !modalOpen && (
         <Box
           display="flex"
           justifyContent="center"
@@ -396,7 +399,7 @@ export default function ChatPage() {
         >
           <CircularProgress />
         </Box>
-      )}
+      )} */}
 
       {/* Main content with blur effect when any modal is open */}
       <Box
@@ -481,15 +484,15 @@ export default function ChatPage() {
         >
           <Grid container spacing={3}>
             {/* <Grid item xs={12} md={6}>
-            <ChatInput
-              prompt={prompt}
-              setPrompt={setPrompt}
-              nextQuestion={nextQuestion}
-              loading={loading}
-              handleSubmit={handleModalSubmit}
-              conversationHistory={conversationHistory}
-            />
-          </Grid> */}
+              <ChatInput
+                prompt={prompt}
+                setPrompt={setPrompt}
+                nextQuestion={nextQuestion}
+                loading={loading}
+                handleSubmit={handleModalSubmit}
+                conversationHistory={conversationHistory}
+              />
+            </Grid> */}
 
             <Grid item xs={12} md={20}>
               {docxUrl ? (

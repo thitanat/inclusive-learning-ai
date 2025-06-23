@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Box, Typography, TextField, Button } from "@mui/material";
+import { Modal, Box, Typography, TextField, Button, Backdrop, CircularProgress } from "@mui/material";
 import JsonDynamicRenderer from "./JsonDynamicRenderer";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListIcon from "@mui/icons-material/List";
@@ -71,11 +71,32 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
           height: 600,
           bgcolor: "background.paper",
           boxShadow: 24,
-          p: 0, // Remove padding here, move to content
+          p: 0,
           borderRadius: 2,
           overflow: "hidden",
         }}
       >
+        {/* Loading Backdrop for ConfigModal only */}
+        <Backdrop
+          open={loading}
+          sx={{
+            color: "#333",
+            zIndex: (theme) => theme.zIndex.modal + 1,
+            backgroundColor: "rgba(255,255,255,0.7)",
+            backdropFilter: "blur(6px)",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            flexDirection: "column",
+          }}
+        >
+          <CircularProgress color="inherit" />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            กำลังประมวลผลข้อมูลหลักสูตร อาจใช้เวลา 2-3 นาที
+          </Typography>
+        </Backdrop>
         {/* Header with buttons */}
         <Box
           sx={{
@@ -89,7 +110,6 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
             minHeight: 64,
           }}
         >
-
           <Button
             startIcon={<ListIcon />}
             onClick={onSectionSelection}

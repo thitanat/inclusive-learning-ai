@@ -14,6 +14,8 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
+  Backdrop, // <-- Add this import
+  CircularProgress, // <-- Add this import
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -157,6 +159,27 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
 
   return (
     <Dialog open={open} disableEscapeKeyDown maxWidth="md" fullWidth sx={{ minWidth: 500 }}>
+      {/* Loading Backdrop for LoginModal only */}
+      <Backdrop
+        open={loading}
+        sx={{
+          color: "#333",
+          zIndex: (theme) => theme.zIndex.modal + 1,
+          backgroundColor: "rgba(255,255,255,0.7)",
+          backdropFilter: "blur(6px)",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          flexDirection: "column",
+        }}
+      >
+        <CircularProgress color="inherit" />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          กำลังดำเนินการ...
+        </Typography>
+      </Backdrop>
       {step === 0 ? (
         <>
           <DialogTitle>AI ออกแบบแผนการสอน</DialogTitle>
