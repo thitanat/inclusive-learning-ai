@@ -63,6 +63,7 @@ export default function ChatPage() {
 
   // Modified fetchSession to accept sessionId
   const fetchSession = (sessionId?: string | null) => {
+    
     const token = localStorage.getItem("token");
     if (!token) {
       setLoginModalOpen(true);
@@ -229,6 +230,7 @@ export default function ChatPage() {
       setLoading(true);
       try {
         setConfigStep((prev) => Math.max(prev - 1, 0));
+        console.log("configStep back:", configStep);
         const token = localStorage.getItem("token");
         const res = await axios.post(
           "/api/session",
@@ -372,7 +374,7 @@ export default function ChatPage() {
       >
         <CircularProgress color="inherit" />
         <Typography variant="h6" sx={{ mt: 2 }}>
-          กำลังประมวลผล...
+          กำลังโหลดเอกสาร...
         </Typography>
       </Backdrop>
 

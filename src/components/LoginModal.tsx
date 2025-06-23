@@ -109,7 +109,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
     setLoading(false);
     if (data.message) {
       setIsRegister(false);
-      alert("Registration successful! Please log in.");
+      alert("ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ");
     } else {
       alert(data.error || "Registration failed.");
     }
@@ -278,12 +278,12 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               fullWidth
               disabled={loading}
             >
-              {isRegister ? "Register" : "Login"}
+              {isRegister ? "ลงทะเบียน" : "เข้าสู่ระบบ"}
             </Button>
             <Typography variant="body2" sx={{ width: "100%", textAlign: "center" }}>
               {isRegister ? (
                 <>
-                  Already have an account?{" "}
+                  ท่านมีบัญชีอยู่แล้ว?{" "}
                   <Link
                     component="button"
                     onClick={() => setIsRegister(false)}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Box, Typography, TextField, Button, Backdrop, CircularProgress } from "@mui/material";
 import JsonDynamicRenderer from "./JsonDynamicRenderer";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -42,6 +42,52 @@ export const stepConfigFields = [
     { label: "จุดอ่อนของแผนการสอนนี้คืออะไร?", field: "reflection5" },
   ],
 ];
+
+const LOADING_SENTENCE = "กำลังประมวลผลข้อมูลหลักสูตร อาจใช้เวลา 2-3 นาที";
+
+const TypingLoader: React.FC = () => {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const [dots, setDots] = useState("");
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (idx < LOADING_SENTENCE.length) {
+      const timeout = setTimeout(() => {
+        setDisplayed((prev) => prev + LOADING_SENTENCE[idx]);
+        setIdx(idx + 1);
+      }, 40); // typing speed
+      return () => clearTimeout(timeout);
+    } else {
+      setDone(true);
+    }
+  }, [idx]);
+
+  useEffect(() => {
+    if (!done) return;
+    let dotCount = 0;
+    const interval = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      setDots(".".repeat(dotCount));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [done]);
+
+  useEffect(() => {
+    // Reset when remount
+    setDisplayed("");
+    setDone(false);
+    setDots("");
+    setIdx(0);
+  }, []);
+
+  return (
+    <Typography variant="h6" sx={{ mt: 2, minHeight: 32 }}>
+      {displayed}
+      {done && <span>{dots}</span>}
+    </Typography>
+  );
+};
 
 const ConfigModal: React.FC<ConfigModalProps> = ({
   open,
@@ -92,10 +138,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
             flexDirection: "column",
           }}
         >
-          <CircularProgress color="inherit" />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            กำลังประมวลผลข้อมูลหลักสูตร อาจใช้เวลา 2-3 นาที
-          </Typography>
+          <TypingLoader />
         </Backdrop>
         {/* Header with buttons */}
         <Box
@@ -255,7 +298,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 onClick={onStepSubmit}
                 disabled={loading}
               >
-                {loading ? "Loading..." : "Next"}
+                {loading ? "Loading..." : "ถัดไป"}
               </Button>
             ) : (
               <Button

@@ -56,9 +56,9 @@ export async function POST(req: Request) {
   
   var configStep;
   if(body.configStep == undefined || body.configStep == null || body.configStep == 0) {
-    console.log("No configStep provided in request body, using session configStep:", session.configStep);
     configStep = session.configStep;
   }
+  configStep = body.configStep 
   let configResponse = {};
 
   switch (configStep) {
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({
-    configStep: session.configStep || 0,
+    configStep: session.configStep,
     configResponse: configResponse || {},
     generateStep: session.generateStep || 0,
     lessonPlan: session.lessonPlan || null,
