@@ -19,6 +19,8 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LogoutIcon from "@mui/icons-material/Logout"; // <-- Add this import
+import AddIcon from "@mui/icons-material/Add"; // <-- Add this import
 
 interface LoginModalProps {
   open: boolean;
@@ -47,13 +49,24 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
         fetch("/api/session/all_sessions", {
           headers: { Authorization: `Bearer ${token}` },
         })
-          .then((res) => res.json())
+          .then((res) => {
+            if (!res.ok) {
+              // Force login on error
+              localStorage.removeItem("token");
+              setStep(0);
+              setUserId(null);
+              return [];
+            }
+            return res.json();
+          })
           .then((sessionList) => {
             setSessions(sessionList);
             setStep(2);
           })
           .catch(() => {
-            setStep(1);
+            // Force login on error
+            localStorage.removeItem("token");
+            setStep(0);
             setUserId(null);
           })
           .finally(() => setLoading(false));
@@ -182,12 +195,38 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
       </Backdrop>
       {step === 0 ? (
         <>
-          <DialogTitle>AI ออกแบบแผนการสอน</DialogTitle>
+          <DialogTitle>AI-Inclusive Classroom</DialogTitle>
           <DialogContent>
             <Box sx={{ minWidth: 400, py: 2, textAlign: "center" }}>
               <Typography variant="h6" gutterBottom>
                 ยินดีต้อนรับ!
               </Typography>
+              <Box
+                sx={{
+                  maxHeight: 180,
+                  overflowY: "auto",
+                  background: "#f5f5f5",
+                  borderRadius: 2,
+                  p: 2,
+                  mb: 2,
+                  textAlign: "left",
+                  fontSize: 15,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                สวัสดีครับ  
+                ท่านกำลังพบกับ AI-Inclusive Classroom
+
+                เป็นเกียรติที่จะนำเสนอ Generative-AI เฉพาะทางด้านการออกแบบห้องเรียนรวม ในรุ่นร่วมสร้าง
+
+                ขอเรียนเชิญครูผู้เชี่ยวชาญด้านการสอนห้องเรียนแบบรวม
+
+                ร่วมกันกับทีมวิจัยพัฒนา AI - Inclusive ในการจัดทำแผนการสอนสำหรับห้องเรียนแบบรวม เพื่อเป็นประโยชน์ต่อห้องเรียนที่มีคุณภาพต่อไป 
+
+                ข้อมูลที่ท่านให้จะถูกจัดเก็บเป็นความลับและนำไปใช้ในภาพรวม เมล์ของท่านจะได้รับการ random เพื่อส่งสิ่งของตอบแทนเป็นการขอบคุณ และจะถูกจัดแยกออกจากข้อมูลภายในไม่เกิน 6 เดือนนับตั้งแต่คำตอบที่ได้รับการจัดเก็บ
+
+                ขอแสดงความขอบคุณเป็นอย่างยิ่ง
+              </Box>
               <Typography variant="body1" sx={{ mb: 2 }}>
                 ขอเชิญท่านผู้เชี่ยวชาญด้านการศึกษา พัฒนา AI ออกแบบแผนการสอนร่วมกัน
               </Typography>
@@ -333,7 +372,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                       sx={{ mr: 1 }}
                       disabled={loading}
                     >
-                      <ArrowForwardIcon /> {/* Changed from PlayArrowIcon */}
+                      <ArrowForwardIcon />
                     </IconButton>
                     <IconButton
                       color="error"
@@ -350,10 +389,27 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               <Button
                 variant="outlined"
                 color="primary"
+                startIcon={<AddIcon />} // <-- Add icon here
                 onClick={handleNewSession}
                 disabled={loading}
               >
-                New Session
+                เริ่มแผนการสอนใหม่
+              </Button>
+            </Box>
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+              <Button
+                variant="text"
+                color="error"
+                startIcon={<LogoutIcon />} // <-- Add icon here
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  setStep(0);
+                  setUserId(null);
+                  setSessions([]);
+                }}
+                disabled={loading}
+              >
+                ออกจากระบบ
               </Button>
             </Box>
           </DialogContent>

@@ -57,8 +57,12 @@ export async function POST(req: Request) {
   var configStep;
   if(body.configStep == undefined || body.configStep == null || body.configStep == 0) {
     configStep = session.configStep;
+  } else {
+      configStep = body.configStep;
   }
-  configStep = body.configStep 
+  console.log(`body.configStep: ${body.configStep}`);
+  console.log(`session.configStep: ${session.configStep}`);
+
   let configResponse = {};
 
   switch (configStep) {
@@ -66,17 +70,27 @@ export async function POST(req: Request) {
       configResponse = {
         "มาตรฐาน": session.standard || {},
         "ตัวชี้วัดระหว่างทาง": session.interimIndicators || {},
-        "ตัวชีวัดปลายทาง": session.finalIndicators || {},
-        "เนื้อหา": session.content || {},
+        "ตัวชี้วัดปลายทาง": session.finalIndicators || {},
+        "สาระสำคัญ": session.content || {},
       };
       break;
     case 2:
       configResponse = {
         "วัตถุประสงค์": session.objectives || {},
         "สมรรถนะผู้เรียน": session.keyCompetencies || {},
-        "สาระการเรียนรู้": session.learningContent || {},
+        "สาระการเรียนรู้": session.content || {}, // Use session.content for learning content
       };
-      console.log("Config response for step 2:", configResponse);
+      break;
+    case 3:
+      configResponse = {
+        "แผนการจัดการเรียนรู้": session.lessonPlan || {},
+        "สื่อ/อุปกรณ์/แหล่งเรียนรู้": session.teachingMaterials || {},
+      };
+      break;
+    case 4:
+      configResponse = {
+        "กระบวนการวัดและประเมินผล": session.evaluation || {},
+      };
       break;
     default:
       configResponse = {};

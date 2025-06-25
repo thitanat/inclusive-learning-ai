@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Container,
@@ -14,16 +13,38 @@ import {
 import axios from "axios";
 import ChatInput from "../components/ChatInput";
 import JsonResponse from "../components/JsonResponse";
-import ConfigModal, { stepConfigFields } from "../components/ConfigModal"; // Renamed import
+import ConfigModal, { stepConfigFields } from "../components/ConfigModal";
 import PdfResponse from "../components/PdfResponse";
 import dynamic from "next/dynamic";
 import LogoutIcon from "@mui/icons-material/Logout";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import DownloadIcon from "@mui/icons-material/Download";
 import LoginModal from "@/components/LoginModal";
-import ListIcon from "@mui/icons-material/List"; // Add this import
+import ListIcon from "@mui/icons-material/List";
+
 
 const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false });
+
+// --- Centralized API call helper for 401 handling ---
+async function apiCallWith401<T>(
+  apiCall: () => Promise<T>,
+  on401: () => void
+): Promise<T | undefined> {
+  try {
+    return await apiCall();
+  } catch (error: any) {
+    if (
+      (error?.response && error.response.status === 401) ||
+      error?.status === 401 ||
+      error?.status === 400
+    ) {
+      localStorage.removeItem("token");
+      on401();
+      return;
+    }
+    throw error;
+  }
+}
 
 export default function ChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -38,16 +59,14 @@ export default function ChatPage() {
     { question: string; userMessage: string; aiResponse?: string }[]
   >([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [configStep, setConfigStep] = useState(0); // Renamed state
+  const [configStep, setConfigStep] = useState(0);
   const [configFields, setConfigFields] = useState({
-    // Renamed state
     subject: "",
     lessonTopic: "",
     level: "",
     numStudents: "",
     studentType: [{ type: "", percentage: "" }],
-    learningTime: "",
-    timeSlot: "",
+    studyPeriod: "",
     limitation: "",
   });
   const [showResponse, setShowResponse] = useState(false);
@@ -58,37 +77,32 @@ export default function ChatPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
   );
+  const [errorWarning, setErrorWarning] = useState(false);
+  const [fileViewerKey, setFileViewerKey] = useState(0);
+  const fileViewerContainerRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
 
-  // Modified fetchSession to accept sessionId
+  // Centralized fetchSession using apiCallWith401
   const fetchSession = (sessionId?: string | null) => {
-    
     const token = localStorage.getItem("token");
     if (!token) {
       setLoginModalOpen(true);
       return;
     }
     try {
-      console.log("Fetching session with ID:", sessionId);
       const decodedToken = JSON.parse(atob(token.split(".")[1]));
       setUserId(decodedToken.userId);
 
-      axios
-        .post(
-          "/api/session",
-          { sessionId: sessionId},
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        .then((res) => {
+      apiCallWith401(
+        async () => {
+          const res = await axios.post(
+            "/api/session",
+            { sessionId: sessionId },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
           const data = res.data;
-          if (data.error) {
-            console.error(data.error);
-            setLoginModalOpen(true);
-            return;
-          }
           if (data.docxBuffer) {
-            console.log("Received DOCX buffer, setting modal to closed");
             setModalOpen(false);
             const buffer = Buffer.from(data.docxBuffer, "base64");
             const url = URL.createObjectURL(
@@ -96,32 +110,29 @@ export default function ChatPage() {
                 type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
               })
             );
-            setDocxUrl(url);
+            await setDocxUrl(null);
+            console.log("Setting DOCX URL:", url);
+            await setDocxUrl(url);
+            setFileViewerKey((prev) => prev + 1);
           } else {
-            console.log("No DOCX buffer received, setting docxUrl to null");
             setDocxUrl(null);
             setModalOpen(true);
             if (!data.configStep) {
-              console.log("No config step found, resetting to step 0");
               setConfigStep(0);
               setShowResponse(false);
             } else {
               setConfigStep(data.configStep - 1 ?? 0);
               if (data.configResponse) {
-                console.log("Setting config response:", data.configResponse);
                 setConfigResponse(data.configResponse || {});
                 setShowResponse(true);
               }
-             
             }
           }
-        })
-        .catch((error) => {
-          console.error("Error fetching session data:", error);
-          setLoginModalOpen(true);
-        });
+        },
+        () => setLoginModalOpen(true)
+      );
     } catch (error) {
-      console.error("Invalid token:", error);
+      localStorage.removeItem("token");
       setLoginModalOpen(true);
     }
   };
@@ -136,7 +147,6 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (selectedSessionId) {
-      console.log("called useEffect");
       setLoginModalOpen(false);
       fetchSession(selectedSessionId);
     } else {
@@ -147,7 +157,7 @@ export default function ChatPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setLoginModalOpen(true); // Show login modal after logout
+    setLoginModalOpen(true);
   };
 
   const handleConfigNextStep = async () => {
@@ -183,7 +193,6 @@ export default function ChatPage() {
   };
 
   const handleConfigFieldChange = (field: string, value: any) => {
-    // Renamed handler
     setShowResponse(false);
     setConfigResponse("");
     if (field === "studentType") {
@@ -197,44 +206,14 @@ export default function ChatPage() {
   };
 
   const handleConfigStepSubmit = async () => {
-    // Renamed handler
-    const token = localStorage.getItem("token");
+    console.log("Submitting config step:", configStep);
     setLoading(true);
-
-    try {
-      const res = await axios.post(
-        `/api/chat/step/${configStep}`,
-        { ...configFields, sessionId: selectedSessionId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = res.data;
-      setConfigResponse(data.response);
-      setShowResponse(true);
-    } catch (error) {
-      console.error("Error advancing step:", error);
-    }
-
-    setLoading(false);
-  };
-
-  const handleConfigPreviousStep = async () => {
-    if (showResponse) {
-      setShowResponse(false);
-      setConfigResponse("");
-    } else {
-      setLoading(true);
-      try {
-        setConfigStep((prev) => Math.max(prev - 1, 0));
-        console.log("configStep back:", configStep);
+    await apiCallWith401(
+      async () => {
         const token = localStorage.getItem("token");
         const res = await axios.post(
-          "/api/session",
-          { sessionId: selectedSessionId, configStep: configStep },
+          `/api/chat/step/${configStep}`,
+          { ...configFields, sessionId: selectedSessionId },
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -242,11 +221,48 @@ export default function ChatPage() {
           }
         );
         const data = res.data;
-        setConfigResponse(data.configResponse || "");
+        setConfigResponse(data.response);
         setShowResponse(true);
-      } catch (error) {
-        console.error("Error fetching previous session step:", error);
+      },
+      () => setLoginModalOpen(true)
+    ).catch((error) => {
+      if (error?.response && error.response.status === 404) {
+        setErrorWarning(true);
+        setShowResponse(false);
+      } else {
+        console.error("Error advancing step:", error);
       }
+    });
+    setLoading(false);
+  };
+
+  const handleConfigPreviousStep = async () => {
+    // If previous step has no input fields, just go back a step
+
+    if (showResponse) {
+      setShowResponse(false);
+      setConfigResponse("");
+    } else {
+      setLoading(true);
+      await apiCallWith401(
+        async () => {
+          setConfigStep((prev) => Math.max(prev - 1, 0));
+          const token = localStorage.getItem("token");
+          const res = await axios.post(
+            "/api/session",
+            { sessionId: selectedSessionId, configStep: configStep },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const data = res.data;
+          setConfigResponse(data.configResponse || "");
+          setShowResponse(true);
+        },
+        () => setLoginModalOpen(true)
+      );
       setLoading(false);
     }
   };
@@ -254,75 +270,130 @@ export default function ChatPage() {
   const handleModalSubmit = async () => {
     setLoading(true);
 
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        "/api/generate",
-        { ...configFields, userId, sessionId: selectedSessionId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          responseType: "arraybuffer", // Important for binary data
-        }
-      );
+    await apiCallWith401(
+      async () => {
+        const token = localStorage.getItem("token");
+        const res = await axios.post(
+          "/api/generate",
+          { ...configFields, userId, sessionId: selectedSessionId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            responseType: "arraybuffer",
+          }
+        );
 
-      const contentType = res.headers["content-type"];
-      if (
-        contentType ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
-        // Handle DOCX
-        const blob = new Blob([res.data], {
-          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        });
-        const url = URL.createObjectURL(blob);
-        setDocxUrl(url);
-        setPdfUrl(null);
-        setGenerateJsonResponse(null);
-      } else if (contentType === "application/pdf") {
-        // Handle PDF
-        const blob = new Blob([res.data], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        setDocxUrl(null);
-        setGenerateJsonResponse(null);
-      } else {
-        // Handle JSON/text
-        const text = new TextDecoder().decode(res.data);
-        const data = JSON.parse(text);
-
-        if (data.type === "json") {
-          setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
+        const contentType = res.headers["content-type"];
+        if (
+          contentType ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ) {
+          const blob = new Blob([res.data], {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          });
+          const url = URL.createObjectURL(blob);
+          setDocxUrl(url);
           setPdfUrl(null);
-          setDocxUrl(null);
-        } else if (data.type === "text") {
-          setGenerateTextResponse(data.nextQuestion || "No further questions.");
-          setPdfUrl(null);
+          setGenerateJsonResponse(null);
+        } else if (contentType === "application/pdf") {
+          const blob = new Blob([res.data], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          setPdfUrl(url);
           setDocxUrl(null);
           setGenerateJsonResponse(null);
-        }
-      }
+        } else {
+          const text = new TextDecoder().decode(res.data);
+          const data = JSON.parse(text);
 
-      // Save reflection if present (last step)
-      if (
-        configFields.reflection1 ||
-        configFields.reflection2 ||
-        configFields.reflection3 ||
-        configFields.reflection4 ||
-        configFields.reflection5
-      ) {
+          if (data.type === "json") {
+            setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
+            setPdfUrl(null);
+            setDocxUrl(null);
+          } else if (data.type === "text") {
+            setGenerateTextResponse(
+              data.nextQuestion || "No further questions."
+            );
+            setPdfUrl(null);
+            setDocxUrl(null);
+            setGenerateJsonResponse(null);
+          }
+        }
+
+        // Save reflection if present (last step)
+        if (
+          configFields.reflection1 ||
+          configFields.reflection2 ||
+          configFields.reflection3 ||
+          configFields.reflection4 ||
+          configFields.reflection5
+        ) {
+          await apiCallWith401(
+            async () => {
+              await axios.post(
+                "/api/session/reflection",
+                {
+                  sessionId: selectedSessionId,
+                  reflection: {
+                    reflection1: configFields.reflection1,
+                    reflection2: configFields.reflection2,
+                    reflection3: configFields.reflection3,
+                    reflection4: configFields.reflection4,
+                    reflection5: configFields.reflection5,
+                  },
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+            },
+            () => setLoginModalOpen(true)
+          );
+        }
+
+        setModalOpen(false);
+      },
+      () => setLoginModalOpen(true)
+    );
+
+    setLoading(false);
+  };
+
+  const handleClearSession = async () => {
+    await apiCallWith401(
+      async () => {
+        const token = localStorage.getItem("token");
         await axios.post(
-          "/api/session/reflection",
+          "/api/auth/clear_session",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        alert("Session cleared successfully!");
+        window.location.reload();
+      },
+      () => setLoginModalOpen(true)
+    );
+  };
+
+  const handleFeedbackSubmit = async (feedback: string) => {
+    console.log("Submitting feedback:", feedback);
+    const feedbackField = `feedback${configStep + 1}`;
+    setLoading(true);
+    await apiCallWith401(
+      async () => {
+        const token = localStorage.getItem("token");
+        await axios.post(
+          "/api/session/feedback",
           {
             sessionId: selectedSessionId,
-            reflection: {
-              reflection1: configFields.reflection1,
-              reflection2: configFields.reflection2,
-              reflection3: configFields.reflection3,
-              reflection4: configFields.reflection4,
-              reflection5: configFields.reflection5,
-            },
+            feedbackField,
+            feedback,
           },
           {
             headers: {
@@ -330,34 +401,29 @@ export default function ChatPage() {
             },
           }
         );
-      }
-
-      setModalOpen(false);
-    } catch (error) {
-      console.error("Error submitting modal:", error);
-    }
-
+        setConfigFields((prev) => ({
+          ...prev,
+          [feedbackField]: feedback,
+        }));
+        await handleConfigNextStep();
+      },
+      () => setLoginModalOpen(true)
+    );
     setLoading(false);
   };
 
-  const handleClearSession = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "/api/auth/clear_session",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      alert("Session cleared successfully!");
-      window.location.reload();
-    } catch (error) {
-      console.error("Error clearing session:", error);
+  // Detect iframe load inside FileViewer
+  useEffect(() => {
+    if (!docxUrl || !fileViewerContainerRef.current) return;
+    const iframe = fileViewerContainerRef.current.querySelector("iframe");
+    if (iframe) {
+      const handleLoad = () => setLoading(false);
+      iframe.addEventListener("load", handleLoad);
+      return () => {
+        iframe.removeEventListener("load", handleLoad);
+      };
     }
-  };
+  }, [docxUrl, fileViewerKey]);
 
   return (
     <Container maxWidth="md">
@@ -391,19 +457,6 @@ export default function ChatPage() {
         }}
       />
 
-      {/* Remove the old loading spinner for page (when modal not open) */}
-      {/* {loading && !modalOpen && (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          sx={{ my: 4 }}
-        >
-          <CircularProgress />
-        </Box>
-      )} */}
-
-      {/* Main content with blur effect when any modal is open */}
       <Box
         sx={{
           filter: loginModalOpen ? "blur(6px)" : "none",
@@ -472,7 +525,14 @@ export default function ChatPage() {
           onPreviousStep={handleConfigPreviousStep}
           maxWidth="lg"
           fullWidth={true}
-          onSectionSelection={() => setLoginModalOpen("session")} // <-- Add this line
+          onSectionSelection={() => setLoginModalOpen("session")}
+          onFeedbackSubmit={handleFeedbackSubmit}
+          onError={() => setShowResponse(false)}
+          errorWarning={errorWarning}
+          onClearErrorWarning={() => {
+            setErrorWarning(false);
+            setShowResponse(false);
+          }}
         />
 
         <Box
@@ -517,17 +577,22 @@ export default function ChatPage() {
                   </Typography>
                   {!fileViewError ? (
                     <div
+                      ref={fileViewerContainerRef}
                       style={{
                         width: "100%",
                         height: "80vh",
-                        overflow: "auto", // Enable both x and y scrolling
+                        overflow: "auto",
                         border: "1px solid #ccc",
                       }}
                     >
                       <FileViewer
+                        key={fileViewerKey}
                         fileType="docx"
                         filePath={docxUrl}
-                        onError={() => setFileViewError(true)}
+                        onError={() => {
+                          setFileViewError(true);
+                          setLoading(false);
+                        }}
                       />
                     </div>
                   ) : (

@@ -41,8 +41,15 @@ export async function POST(request: NextRequest, { params }) {
 
     switch (configStep) {
       case "0": {
-        const task0_0 = ` วิชา: ${body.subject} เนื้อหา: ${body.lessonTopic}ระดับชั้น: ${body.level}`;
+        const task0_0 = ` กลุ่มสาระ: ${body.subject} เรื่อง: ${body.lessonTopic}ระดับชั้น: ${body.level}`;
         const data0_0 = await callQueryLLM(task0_0, "0_0", true);
+
+        // Check for "ไม่พบ" in data0_0
+        if (typeof data0_0 === "string" && data0_0.includes("ไม่พบ")) {
+          console.log("No course data found, returning error response");
+          return NextResponse.json({ error: "ไม่พบข้อมูลหลักสูตร กรุณาลองใหม่" }, { status: 404 });
+        }
+
         const response0_0 = await extractJSON(data0_0);
         const standard = response0_0["มาตรฐาน"];
         const interimIndicators = response0_0["ตัวชี้วัดระหว่างทาง"];
@@ -51,12 +58,12 @@ export async function POST(request: NextRequest, { params }) {
         const task0_1 = `จากข้อมูลมาตรฐานการเรียนรู้ต่อไปนี้
 
         ${JSON.stringify(standard)} ตัวชี้วัดระหว่างทาง: ${JSON.stringify(interimIndicators)} ตัวชี้วัดปลายทาง: ${JSON.stringify(finalIndicators)}
-        ให้คุณช่วยคิดหัวข้อสาระาการเรียนแบบละเอียด ตอบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4 
+        ให้คุณช่วยคิดหัวข้อสาระาการเรียนแบบละเอียด ตอบในรูปแบบ JSON โดยไม่ต้องมี field อื่นๆ แค่ใช้ field เป็นตัวเลขของแต่ละข้อเช่น 1,2,3,4 หากไม่สามารถคิดหัวข้อให้ตรงประเด็นได้ ให้ตอบว่า "ไม่พบหัวข้อที่เกี่ยวข้อง" และห้ามใช้หัวข้อที่ซ้ำกันในแต่ละข้อ
         `;
         const data0_1 = await callQueryLLM(task0_1, "0_1", false);
         const response0_1 = await extractJSON(data0_1);
 
-        const task0_2 = `จา่กหัวข้อสาระการเรียนรู้ต่อไปนี้ ${JSON.stringify(response0_1)} ให้สรุปสาระสำคัญแบบละเอียด โดยรวมเป็น ประโยคบทสรุปสั้นๆ ตอบในรูปแบบ JSON โดยมี field เป็น "สาระสำคัญ"`
+        const task0_2 = `จา่กหัวข้อสาระการเรียนรู้ต่อไปนี้ ${JSON.stringify(response0_1)} ให้สรุปสาระสำคัญแบบละเอียด โดยรวมเป็น ประโยคบทสรุปสั้นๆ ตอบในรูปแบบ JSON โดยมี field เป็น "สาระสำคัญ" หากไม่สามารถสรุปได้ให้ตอบว่า "ไม่พบสาระสำคัญที่เกี่ยวข้อง" `
         const data0_2 = await callQueryLLM(task0_2, "0_2", false);
         const response0_2 = await extractJSON(data0_2);
         const response0 = {
@@ -119,8 +126,7 @@ export async function POST(request: NextRequest, { params }) {
       case "2": {
         const numStudents = body.numStudents || 30;
         const studentType = body.studentType || [];
-        const studyHours = body.studyHours || 9;
-        const timePerClass = body.timePerClass || 3;
+        const studyPeriod = body.studyPeriod || 9;
         const studentTypesStr = studentType.length > 0
           ? studentType.map(
               (s: any, idx: number) =>
@@ -150,9 +156,7 @@ export async function POST(request: NextRequest, { params }) {
                                     - แยกเป็นประเภทนักเรียนที่หลากหลายและเปอร์เซ็นต์ดังนี้: ${studentTypesStr}
                           ใช้ข้อมูลอินพุตต่อไปนี้:
                           - เนื้อหา: ${JSON.stringify(session.content)}
-                          - จำนวนชั่วโมงทั้งหมดในการสอน: ${studyHours} ชั่วโมง
-                          - ระยะเวลาแต่ละคาบ: คาบละ ${timePerClass} ชั่วโมง
-
+                          - จำนวนชั่วโมงทั้งหมดในการสอน: ${50*studyPeriod} นาที
                           **ห้ามใช้ตัวอย่างกิจกรรมง่ายเกินไป เช่น วาดภาพ/จับคู่คำศัพท์ เว้นแต่มีความเกี่ยวโยงกับการวิเคราะห์หรือออกแบบทางวิทยาศาสตร์จริง เช่น “วาดกราฟแสดงความเร่ง” หรือ “จับคู่แรงกับผลในระบบจริง”
                           **ทุกกิจกรรมต้องสอดคล้องกับสาระและตัวชี้วัด และมีเป้าหมายที่ระดับวิเคราะห์ ประเมินค่า หรือสร้างสรรค์ ตาม Bloom’s Taxonomy และต้องประยุกต์ใช้ความรู้ เช่น การจำลองสถานการณ์แรง, การวิเคราะห์ระบบกลไก, หรือการออกแบบสิ่งประดิษฐ์จริง
 `;
@@ -165,8 +169,7 @@ export async function POST(request: NextRequest, { params }) {
 
         await updateSessionById(sessionId, {
           configStep: parseInt(configStep) + 1,
-          StudyHours: studyHours,
-          timePerClass: timePerClass,
+          studyPeriod: studyPeriod || 1,
           numStudents: numStudents,
           studentType: studentType,
           lessonPlan: response2_0,
