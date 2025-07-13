@@ -21,6 +21,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LogoutIcon from "@mui/icons-material/Logout"; // <-- Add this import
 import AddIcon from "@mui/icons-material/Add"; // <-- Add this import
+import LineQROpenModal from "./LineQROpenModal";
+import LineIcon from "./LineIcon";
 
 interface LoginModalProps {
   open: boolean;
@@ -38,6 +40,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [sessions, setSessions] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [lineModalOpen, setLineModalOpen] = useState(false);
 
   useEffect(() => {
     if (open && forceSessionStep) {
@@ -253,6 +256,21 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               >
                 ลงทะเบียน
               </Button>
+              <Button
+                variant="contained"
+                startIcon={<LineIcon />}
+                onClick={() => setLineModalOpen(true)}
+                sx={{
+                  mt: 2,
+                  bgcolor: "#06C755",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "#05b94a" },
+                }}
+                fullWidth
+              >
+                ติดต่อสอบถาม Line OA
+              </Button>
+              <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
             </Box>
           </DialogContent>
         </>
@@ -389,7 +407,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               <Button
                 variant="outlined"
                 color="primary"
-                startIcon={<AddIcon />} // <-- Add icon here
+                startIcon={<AddIcon />}
                 onClick={handleNewSession}
                 disabled={loading}
               >
@@ -400,7 +418,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               <Button
                 variant="text"
                 color="error"
-                startIcon={<LogoutIcon />} // <-- Add icon here
+                startIcon={<LogoutIcon />}
                 onClick={() => {
                   localStorage.removeItem("token");
                   setStep(0);
@@ -411,6 +429,23 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               >
                 ออกจากระบบ
               </Button>
+            </Box>
+            {/* Always show Line OA button */}
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+              <Button
+                variant="contained"
+                startIcon={<LineIcon />}
+                onClick={() => setLineModalOpen(true)}
+                sx={{
+                  bgcolor: "#06C755",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "#05b94a" },
+                }}
+                fullWidth
+              >
+                ติดต่อสอบถาม Line OA
+              </Button>
+              <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
             </Box>
           </DialogContent>
         </>

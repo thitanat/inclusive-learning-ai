@@ -15,6 +15,8 @@ import {
 import JsonDynamicRenderer from "./JsonDynamicRenderer";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListIcon from "@mui/icons-material/List";
+import LineQROpenModal from "./LineQROpenModal";
+import LineIcon from "./LineIcon";
 
 interface ConfigModalProps {
   open: boolean;
@@ -152,6 +154,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
   ];
   const feedbackField = `feedback${configStep + 1}`;
   const [feedback, setFeedback] = useState("");
+  const [lineModalOpen, setLineModalOpen] = useState(false);
 
   useEffect(() => {
     // Reset feedback when step changes or modal opens
@@ -216,7 +219,17 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
           >
             แผนการสอนของคุณ
           </Button>
+          <Button
+            startIcon={<LineIcon />}
+            onClick={() => setLineModalOpen(true)}
+            color="success"
+            variant="contained"
+            sx={{ ml: 1, bgcolor: "#06C755", "&:hover": { bgcolor: "#05b94a" } }}
+          >
+            Line OA
+          </Button>
         </Box>
+        <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
         {/* Modal content */}
         <Box
           sx={{ p: 4, pt: 2, height: "calc(100% - 64px)", overflowY: "auto" }}
