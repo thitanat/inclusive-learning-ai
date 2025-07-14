@@ -21,8 +21,13 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LogoutIcon from "@mui/icons-material/Logout"; // <-- Add this import
 import AddIcon from "@mui/icons-material/Add"; // <-- Add this import
+import LoginIcon from "@mui/icons-material/Login";
+import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import LineQROpenModal from "./LineQROpenModal";
 import LineIcon from "./LineIcon";
+import DemoVideoModal from "./DemoVideoModal";
 
 interface LoginModalProps {
   open: boolean;
@@ -41,6 +46,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
   const [sessions, setSessions] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [lineModalOpen, setLineModalOpen] = useState(false);
+  const [demoVideoOpen, setDemoVideoOpen] = useState(false);
 
   useEffect(() => {
     if (open && forceSessionStep) {
@@ -236,6 +242,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               <Button
                 variant="contained"
                 color="primary"
+                startIcon={<LoginIcon />}
                 onClick={() => {
                   setIsRegister(false);
                   setStep(1);
@@ -247,7 +254,18 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               </Button>
               <Button
                 variant="outlined"
+                color="secondary"
+                startIcon={<PlayCircleOutlineIcon />}
+                onClick={() => setDemoVideoOpen(true)}
+                sx={{ mb: 1 }}
+                fullWidth
+              >
+                ดูวิดีโอแนะนำการใช้งาน
+              </Button>
+              <Button
+                variant="outlined"
                 color="primary"
+                startIcon={<AppRegistrationIcon />}
                 onClick={() => {
                   setIsRegister(true);
                   setStep(1);
@@ -271,6 +289,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                 ติดต่อสอบถาม Line OA
               </Button>
               <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
+              <DemoVideoModal open={demoVideoOpen} onClose={() => setDemoVideoOpen(false)} />
             </Box>
           </DialogContent>
         </>
@@ -331,6 +350,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
             <Button
               variant="contained"
               color="primary"
+              startIcon={isRegister ? <AppRegistrationIcon /> : <LoginIcon />}
               onClick={isRegister ? handleRegister : handleLogin}
               fullWidth
               disabled={loading}

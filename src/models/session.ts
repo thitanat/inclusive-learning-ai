@@ -47,3 +47,8 @@ export async function deleteSessionById(sessionId: string) {
   const db = await connectDB();
   return await db.collection("sessions").deleteOne({ _id: new ObjectId(sessionId) });
 }
+
+export async function getAllSession() {
+  const db = await connectDB();
+  return await db.collection("sessions").find({}).toArray();
+}
