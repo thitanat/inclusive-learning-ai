@@ -1,0 +1,31 @@
+"use client";
+import React from "react";
+import { Dialog, DialogTitle, DialogContent, Box } from "@mui/material";
+
+export default function CUINetQROpenModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs">
+      <DialogTitle>เพิ่มเพื่อน CUINet Line OA</DialogTitle>
+      <DialogContent>
+        <Box display="flex" flexDirection="column" alignItems="center" p={2}>
+          <img
+            src="https://qr-official.line.me/gs/M_cuinet_GW.png?oat_content=qr"
+            alt="CUINet Line OA QR Code"
+            style={{ width: 220, height: 220, marginBottom: 12 }}
+          />
+          <Box fontSize={16} textAlign="center" mb={1}>
+            สแกน QR Code เพื่อเพิ่มเพื่อน CUINet Line OA
+          </Box>
+          <a
+            href="https://lin.ee/CUINet" // Replace with actual CUINet Line OA link
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#06C755", fontWeight: 500, textDecoration: "none", fontSize: 16 }}
+          >
+            หรือคลิกที่นี่เพื่อเพิ่มเพื่อน CUINet
+          </a>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+}

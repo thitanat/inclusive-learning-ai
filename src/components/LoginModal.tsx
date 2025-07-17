@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -26,6 +27,7 @@ import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import LineQROpenModal from "./LineQROpenModal";
+import CUINetQROpenModal from "./CUINetQROpenModal";
 import LineIcon from "./LineIcon";
 import DemoVideoModal from "./DemoVideoModal";
 
@@ -46,6 +48,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
   const [sessions, setSessions] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [lineModalOpen, setLineModalOpen] = useState(false);
+  const [cuinetModalOpen, setCuinetModalOpen] = useState(false);
   const [demoVideoOpen, setDemoVideoOpen] = useState(false);
 
   useEffect(() => {
@@ -223,22 +226,39 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                   whiteSpace: "pre-line",
                 }}
               >
-                สวัสดีครับ  
-                ท่านกำลังพบกับ AI-Inclusive Classroom
-
-                เป็นเกียรติที่จะนำเสนอ Generative-AI เฉพาะทางด้านการออกแบบห้องเรียนรวม ในรุ่นร่วมสร้าง
-
-                ขอเรียนเชิญครูผู้เชี่ยวชาญด้านการสอนห้องเรียนแบบรวม
-
-                ร่วมกันกับทีมวิจัยพัฒนา AI - Inclusive ในการจัดทำแผนการสอนสำหรับห้องเรียนแบบรวม เพื่อเป็นประโยชน์ต่อห้องเรียนที่มีคุณภาพต่อไป 
-
-                ข้อมูลที่ท่านให้จะถูกจัดเก็บเป็นความลับและนำไปใช้ในภาพรวม เมล์ของท่านจะได้รับการ random เพื่อส่งสิ่งของตอบแทนเป็นการขอบคุณ และจะถูกจัดแยกออกจากข้อมูลภายในไม่เกิน 6 เดือนนับตั้งแต่คำตอบที่ได้รับการจัดเก็บ
-
-                ขอแสดงความขอบคุณเป็นอย่างยิ่ง
+                ห้องเรียนแบบเรียนรวม  (Inclusive Classroom) หมายถึง ห้องเรียนที่จัดให้นักเรียนที่มีความต้องการพิเศษและ
+                นักเรียนทั่วไปเรียนร่วมกันในชั้นเรียนเดียวกัน โดยไม่แบ่งแยกความแตกต่างของนักเรียน 
+                 ไม่ว่าจะเป็นความพิการ ความบกพร่องทางการเรียนรู้ หรือความสามารถที่แตกต่างกัน.
+                   โดยมีการปรับวิธีการสอน สื่อการเรียนการสอน และสภาพแวดล้อมให้เหมาะสมกับนักเรียนแต่ละคน
+                    เพื่อให้ทุกคนได้รับการศึกษาที่มีคุณภาพและเท่าเทียม
               </Box>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                ขอเชิญท่านผู้เชี่ยวชาญด้านการศึกษา พัฒนา AI ออกแบบแผนการสอนร่วมกัน
-              </Typography>
+              <Box
+                sx={{
+                  maxHeight: 220,
+                  overflowY: "auto",
+                  background: "#f9f9f9",
+                  borderRadius: 2,
+                  p: 2,
+                  mb: 2,
+                  textAlign: "left",
+                  fontSize: 15,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{ mb: 2, textAlign: "left" }}
+                >
+                  สวัสดีครับ<br />
+                  ขอเรียนเชิญท่านร่วมสร้างปัญญาประดิษฐ์ห้องเรียนแบบรวม ปัญญาประดิษฐ์จะช่วยท่านออกแบบแผนการสอนเพื่อสร้างคุณภาพห้องเรียนแบบเรียนรวม
+                  <br /><br />
+                  1) <b>เจาะเนื้อหา:</b> เพียงท่านกำหนดเนื้อหาที่ต้องการสอน จำนวนนักเรียน ลักษณะนักเรียน ปัญญาประดิษฐ์จะตรวจสอบเนื้อหาตามมาตรฐานการเรียนรู้ตามหลักสูตรการศึกษาขั้นพื้นฐานปี 2568 และ<br />
+                  2) <b>สอนเอไอ:</b> ในแต่ละส่วนของแผนการสอน ขออนุเคราะห์ท่านให้ความรู้และความเห็นตามประสบการณ์ของท่านให้กับปัญญาประดิษฐ์<br />
+                  3) <b>ให้ความรู้เพิ่มเติม:</b> ท่านจะได้รับ .doc แผนการสอน ที่ท่านอาจอธิบายเพิ่มเติม และส่งกลับมาที่ <Link href="mailto:inet.chula@gmail.com" target="_blank" rel="noopener" sx={{ color: "#1976d2", fontWeight: 600 }}>inet.chula@gmail.com</Link>
+                  <br /><br />
+                  ข้อมูลที่ท่านให้จะถูกจัดเก็บเป็นความลับและนำไปใช้ในภาพรวม เมล์ของท่านจะได้รับการ random เพื่อส่งสิ่งของตอบแทนเป็นการขอบคุณ และจะถูกจัดแยกออกจากข้อมูลภายในไม่เกิน 6 เดือนนับตั้งแต่คำตอบที่ได้รับการจัดเก็บ ขอแสดงความขอบคุณเป็นอย่างยิ่ง
+                </Typography>
+              </Box>
               <Button
                 variant="contained"
                 color="primary"
@@ -274,21 +294,39 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               >
                 ลงทะเบียน
               </Button>
-              <Button
-                variant="contained"
-                startIcon={<LineIcon />}
-                onClick={() => setLineModalOpen(true)}
-                sx={{
-                  mt: 2,
-                  bgcolor: "#06C755",
-                  color: "#fff",
-                  "&:hover": { bgcolor: "#05b94a" },
-                }}
-                fullWidth
-              >
-                ติดต่อสอบถาม Line OA
-              </Button>
+              {/* Replace the two Line buttons with a flex row */}
+              <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<LineIcon />}
+                  onClick={() => setLineModalOpen(true)}
+                  sx={{
+                    bgcolor: "#06C755",
+                    color: "#fff",
+                    "&:hover": { bgcolor: "#05b94a" },
+                    flex: 1,
+                  }}
+                  fullWidth={false}
+                >
+                  ติดต่อสอบถาม Line OA
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<LineIcon />}
+                  onClick={() => setCuinetModalOpen(true)}
+                  sx={{
+                    bgcolor: "#06C755",
+                    color: "#fff",
+                    "&:hover": { bgcolor: "#05b94a" },
+                    flex: 1,
+                  }}
+                  fullWidth={false}
+                >
+                  CUINet
+                </Button>
+              </Box>
               <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
+              <CUINetQROpenModal open={cuinetModalOpen} onClose={() => setCuinetModalOpen(false)} />
               <DemoVideoModal open={demoVideoOpen} onClose={() => setDemoVideoOpen(false)} />
             </Box>
           </DialogContent>
@@ -394,10 +432,12 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               {sessions.map((session) => (
                 <ListItem
                   key={session._id}
-                  button
                   onClick={() => handleContinueSession(session._id)}
-                  disabled={loading}
-                  sx={{ cursor: "pointer" }}
+                  sx={{ 
+                    cursor: "pointer",
+                    opacity: loading ? 0.5 : 1,
+                    pointerEvents: loading ? "none" : "auto"
+                  }}
                 >
                   <ListItemText
                     primary={`Session: ${session.lessonTopic || session._id}`}
@@ -450,8 +490,8 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                 ออกจากระบบ
               </Button>
             </Box>
-            {/* Always show Line OA button */}
-            <Box sx={{ mt: 3, textAlign: "center" }}>
+            {/* Replace the Line OA button with both buttons side by side */}
+            <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
               <Button
                 variant="contained"
                 startIcon={<LineIcon />}
@@ -460,13 +500,29 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                   bgcolor: "#06C755",
                   color: "#fff",
                   "&:hover": { bgcolor: "#05b94a" },
+                  flex: 1,
                 }}
-                fullWidth
+                fullWidth={false}
               >
                 ติดต่อสอบถาม Line OA
               </Button>
-              <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
+              <Button
+                variant="contained"
+                startIcon={<LineIcon />}
+                onClick={() => setCuinetModalOpen(true)}
+                sx={{
+                  bgcolor: "#06C755",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "#05b94a" },
+                  flex: 1,
+                }}
+                fullWidth={false}
+              >
+                CUINet
+              </Button>
             </Box>
+            <LineQROpenModal open={lineModalOpen} onClose={() => setLineModalOpen(false)} />
+            <CUINetQROpenModal open={cuinetModalOpen} onClose={() => setCuinetModalOpen(false)} />
           </DialogContent>
         </>
       )}
