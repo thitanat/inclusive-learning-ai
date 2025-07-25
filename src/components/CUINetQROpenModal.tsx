@@ -9,7 +9,7 @@ export default function CUINetQROpenModal({ open, onClose }: { open: boolean; on
       <DialogContent>
         <Box display="flex" flexDirection="column" alignItems="center" p={2}>
           <img
-            src="https://qr-official.line.me/gs/M_cuinet_GW.png?oat_content=qr"
+            src="https://qr-official.line.me/gs/M_057eznuo_GW.png?oat_content=qr"
             alt="CUINet Line OA QR Code"
             style={{ width: 220, height: 220, marginBottom: 12 }}
           />
@@ -17,7 +17,7 @@ export default function CUINetQROpenModal({ open, onClose }: { open: boolean; on
             สแกน QR Code เพื่อเพิ่มเพื่อน CUINet Line OA
           </Box>
           <a
-            href="https://lin.ee/CUINet" // Replace with actual CUINet Line OA link
+            href="https://lin.ee/RlFTniE" // Replace with actual CUINet Line OA link
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "#06C755", fontWeight: 500, textDecoration: "none", fontSize: 16 }}
