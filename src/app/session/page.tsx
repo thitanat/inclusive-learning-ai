@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Container,
@@ -47,7 +47,7 @@ async function apiCallWith401<T>(
   }
 }
 
-export default function SessionPage() {
+function SessionPageContent() {
   const [userId, setUserId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [generateTextResponse, setGenerateTextResponse] = useState("");
@@ -753,5 +753,58 @@ export default function SessionPage() {
         </Box>
       </Box>
     </Container>
+  );
+}
+
+// Loading component for Suspense fallback
+function SessionPageLoading() {
+  return (
+    <Container maxWidth="md">
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '50vh',
+          gap: 3,
+        }}
+      >
+        <Box
+          sx={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            border: '4px solid rgba(34, 197, 94, 0.3)',
+            borderTop: '4px solid #22c55e',
+            animation: 'spin 1s linear infinite',
+            '@keyframes spin': {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            },
+          }}
+        />
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: "#f0fdf4",
+            textAlign: 'center',
+            fontWeight: 400,
+            letterSpacing: 0.5,
+          }}
+        >
+          กำลังโหลด...
+        </Typography>
+      </Box>
+    </Container>
+  );
+}
+
+// Main export with Suspense wrapper
+export default function SessionPage() {
+  return (
+    <Suspense fallback={<SessionPageLoading />}>
+      <SessionPageContent />
+    </Suspense>
   );
 }
