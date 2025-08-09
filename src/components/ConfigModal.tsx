@@ -80,13 +80,14 @@ const TypingLoader: React.FC = () => {
   const [done, setDone] = useState(false);
   const [dots, setDots] = useState("");
   const [idx, setIdx] = useState(0);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   useEffect(() => {
     if (idx < LOADING_SENTENCE.length) {
       const timeout = setTimeout(() => {
         setDisplayed((prev) => prev + LOADING_SENTENCE[idx]);
         setIdx(idx + 1);
-      }, 40); // typing speed
+      }, 35); // slightly faster typing speed
       return () => clearTimeout(timeout);
     } else {
       setDone(true);
@@ -99,9 +100,17 @@ const TypingLoader: React.FC = () => {
     const interval = setInterval(() => {
       dotCount = (dotCount + 1) % 4;
       setDots(".".repeat(dotCount));
-    }, 400);
+    }, 350);
     return () => clearInterval(interval);
   }, [done]);
+
+  useEffect(() => {
+    // Cursor blinking animation
+    const interval = setInterval(() => {
+      setCursorVisible((prev) => !prev);
+    }, 530);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Reset when remount
@@ -109,13 +118,182 @@ const TypingLoader: React.FC = () => {
     setDone(false);
     setDots("");
     setIdx(0);
+    setCursorVisible(true);
   }, []);
 
   return (
-    <Typography variant="h6" sx={{ mt: 2, minHeight: 32 }}>
-      {displayed}
-      {done && <span>{dots}</span>}
-    </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      {/* AI Brain Loading Icon */}
+      <Box
+        sx={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.3))',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '2px solid rgba(34, 197, 94, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          animation: 'pulse 2s ease-in-out infinite',
+          '@keyframes pulse': {
+            '0%': {
+              transform: 'scale(1)',
+              boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.4)',
+            },
+            '50%': {
+              transform: 'scale(1.05)',
+              boxShadow: '0 0 0 15px rgba(34, 197, 94, 0.1)',
+            },
+            '100%': {
+              transform: 'scale(1)',
+              boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.4)',
+            },
+          },
+        }}
+      >
+        {/* Neural network dots */}
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            '& .neural-dot': {
+              position: 'absolute',
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #22c55e, #10b981)',
+              animation: 'neuralPulse 1.5s ease-in-out infinite',
+            },
+            '& .neural-dot:nth-of-type(1)': {
+              top: '20%',
+              left: '30%',
+              animationDelay: '0s',
+            },
+            '& .neural-dot:nth-of-type(2)': {
+              top: '30%',
+              right: '25%',
+              animationDelay: '0.3s',
+            },
+            '& .neural-dot:nth-of-type(3)': {
+              bottom: '25%',
+              left: '25%',
+              animationDelay: '0.6s',
+            },
+            '& .neural-dot:nth-of-type(4)': {
+              bottom: '30%',
+              right: '30%',
+              animationDelay: '0.9s',
+            },
+            '& .neural-dot:nth-of-type(5)': {
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              animationDelay: '1.2s',
+            },
+            '@keyframes neuralPulse': {
+              '0%, 100%': {
+                opacity: 0.4,
+                transform: 'scale(0.8)',
+              },
+              '50%': {
+                opacity: 1,
+                transform: 'scale(1.2)',
+              },
+            },
+          }}
+        >
+          <div className="neural-dot" />
+          <div className="neural-dot" />
+          <div className="neural-dot" />
+          <div className="neural-dot" />
+          <div className="neural-dot" />
+        </Box>
+      </Box>
+
+      {/* Progress Bar */}
+      <Box
+        sx={{
+          width: 300,
+          height: 4,
+          background: 'rgba(34, 197, 94, 0.1)',
+          borderRadius: 2,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <Box
+          sx={{
+            height: '100%',
+            background: 'linear-gradient(90deg, #22c55e, #10b981, #22c55e)',
+            backgroundSize: '200% 100%',
+            borderRadius: 2,
+            animation: 'progressFlow 2s linear infinite',
+            width: done ? '100%' : `${(idx / LOADING_SENTENCE.length) * 100}%`,
+            transition: 'width 0.1s ease-out',
+            '@keyframes progressFlow': {
+              '0%': {
+                backgroundPosition: '-200% 0',
+              },
+              '100%': {
+                backgroundPosition: '200% 0',
+              },
+            },
+          }}
+        />
+      </Box>
+
+      {/* Typography with enhanced styling */}
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          minHeight: 40, 
+          color: "#f0fdf4",
+          textAlign: 'center',
+          fontWeight: 400,
+          letterSpacing: 0.5,
+          textShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+        }}
+      >
+        {displayed}
+        {!done && (
+          <span 
+            style={{
+              opacity: cursorVisible ? 1 : 0,
+              transition: 'opacity 0.1s ease-in-out',
+              color: '#22c55e',
+              fontWeight: 'bold',
+              marginLeft: '2px'
+            }}
+          >
+            |
+          </span>
+        )}
+        {done && (
+          <span 
+            style={{
+              color: '#22c55e',
+              fontWeight: 'bold',
+              animation: 'dotBounce 0.35s ease-in-out infinite',
+            }}
+          >
+            {dots}
+          </span>
+        )}
+      </Typography>
+
+      <style>
+        {`
+          @keyframes dotBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+          }
+        `}
+      </style>
+    </Box>
   );
 };
 
@@ -172,10 +350,13 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
           transform: "translate(-50%, -50%)",
           width: 800,
           height: 600,
-          bgcolor: "background.paper",
-          boxShadow: 24,
+          background: "rgba(21, 128, 61, 0.12)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(34, 197, 94, 0.25)",
+          boxShadow: "0 25px 50px -12px rgba(21, 128, 61, 0.5)",
           p: 0,
-          borderRadius: 2,
+          borderRadius: 3,
           overflow: "hidden",
         }}
       >
@@ -183,16 +364,19 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
         <Backdrop
           open={loading}
           sx={{
-            color: "#333",
+            color: "#f0fdf4",
             zIndex: (theme) => theme.zIndex.modal + 1,
-            backgroundColor: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(6px)",
+            background: 'linear-gradient(135deg, rgba(21, 128, 61, 0.4), rgba(16, 185, 129, 0.3))',
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             position: "absolute",
             top: 0,
             left: 0,
             width: "100%",
             height: "100%",
             flexDirection: "column",
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
           <TypingLoader />
@@ -205,17 +389,31 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
             gap: 1,
             px: 3,
             py: 2,
-            borderBottom: "1px solid #eee",
-            background: "#fafbfc",
+            borderBottom: "1px solid rgba(34, 197, 94, 0.15)",
+            background: "rgba(240, 253, 244, 0.05)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             minHeight: 64,
           }}
         >
           <Button
             startIcon={<ListIcon />}
             onClick={onSectionSelection}
-            color="primary"
             variant="outlined"
-            sx={{ ml: 1 }}
+            sx={{ 
+              ml: 1,
+              background: "rgba(34, 197, 94, 0.15)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(34, 197, 94, 0.3)",
+              color: "#bbf7d0",
+              "&:hover": {
+                background: "rgba(34, 197, 94, 0.25)",
+                borderColor: "rgba(34, 197, 94, 0.5)",
+                boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                transform: "translateY(-2px)",
+              },
+            }}
           >
             แผนการสอนของคุณ
           </Button>
@@ -262,37 +460,37 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 switch (configStep) {
                   case 0:
                     return (
-                      <Typography variant="h5" color="primary" gutterBottom>
+                      <Typography variant="h5" gutterBottom sx={{ color: "#f0fdf4", fontWeight: 600 }}>
                         ส่วนที่ 1: ข้อมูลหลักสูตร
                       </Typography>
                     );
                   case 1:
                     return (
-                      <Typography variant="h5" color="primary" gutterBottom>
+                      <Typography variant="h5" gutterBottom sx={{ color: "#f0fdf4", fontWeight: 600 }}>
                         ส่วนที่ 2: จุดประสงค์การเรียนรู้
                       </Typography>
                     );
                   case 2:
                     return (
-                      <Typography variant="h5" color="primary" gutterBottom>
+                      <Typography variant="h5" gutterBottom sx={{ color: "#f0fdf4", fontWeight: 600 }}>
                         ส่วนที่ 3: กระบวนการจัดกิจกรรมการเรียนรู้
                       </Typography>
                     );
                   case 3:
                     return (
-                      <Typography variant="h5" color="primary" gutterBottom>
+                      <Typography variant="h5" gutterBottom sx={{ color: "#f0fdf4", fontWeight: 600 }}>
                         ส่วนที่ 4: การวัดประเมินผล
                       </Typography>
                     );
                   case 4:
                     return (
-                      <Typography variant="h5" color="primary" gutterBottom>
+                      <Typography variant="h5" gutterBottom sx={{ color: "#f0fdf4", fontWeight: 600 }}>
                         ส่วนที่ 5: ขออนุเคราะห์ผลป้อนกลับ
                       </Typography>
                     );
                   default:
                     return (
-                      <Typography variant="h6" gutterBottom>
+                      <Typography variant="h6" gutterBottom sx={{ color: "#f0fdf4" }}>
                         ส่วน {configStep + 1}:{" "}
                         {currentFields.length === 1
                           ? currentFields[0].label
@@ -310,7 +508,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 currentFields.map((fieldObj) =>
                   fieldObj.field === "studentType" ? (
                     <Box key="studentType" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle1">
+                      <Typography variant="subtitle1" sx={{ color: "#dcfce7" }}>
                         ประเภทของนักเรียนที่มีความหลากหลาย
                       </Typography>
                       {Array.isArray(configFields.studentType) &&
@@ -328,6 +526,28 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                                 onChange("studentType", updated);
                               }}
                               size="small"
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  background: "rgba(240, 253, 244, 0.1)",
+                                  backdropFilter: "blur(8px)",
+                                  WebkitBackdropFilter: "blur(8px)",
+                                  "& fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.2)",
+                                  },
+                                  "&:hover fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.4)",
+                                  },
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.6)",
+                                  },
+                                  "& input": {
+                                    color: "#f0fdf4",
+                                  },
+                                },
+                                "& .MuiInputLabel-root": {
+                                  color: "#bbf7d0",
+                                },
+                              }}
                             />
                             <TextField
                               label="จำนวนร้อยละของชั้นเรียน"
@@ -339,11 +559,34 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                               }}
                               size="small"
                               type="number"
-                              InputProps={{ endAdornment: <span>%</span> }}
+                              InputProps={{ 
+                                endAdornment: <span style={{ color: "#bbf7d0" }}>%</span>,
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  background: "rgba(240, 253, 244, 0.1)",
+                                  backdropFilter: "blur(8px)",
+                                  WebkitBackdropFilter: "blur(8px)",
+                                  "& fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.2)",
+                                  },
+                                  "&:hover fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.4)",
+                                  },
+                                  "&.Mui-focused fieldset": {
+                                    borderColor: "rgba(34, 197, 94, 0.6)",
+                                  },
+                                  "& input": {
+                                    color: "#f0fdf4",
+                                  },
+                                },
+                                "& .MuiInputLabel-root": {
+                                  color: "#bbf7d0",
+                                },
+                              }}
                             />
                             <Button
                               variant="outlined"
-                              color="error"
                               onClick={() => {
                                 const updated = configFields.studentType.filter(
                                   (_: any, i: number) => i !== idx
@@ -354,6 +597,17 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                                 configFields.studentType.length == 1 &&
                                 !!showResponse
                               }
+                              sx={{
+                                background: "rgba(239, 68, 68, 0.15)",
+                                backdropFilter: "blur(12px)",
+                                WebkitBackdropFilter: "blur(12px)",
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                color: "#fecaca",
+                                "&:hover": {
+                                  background: "rgba(239, 68, 68, 0.25)",
+                                  borderColor: "rgba(239, 68, 68, 0.5)",
+                                },
+                              }}
                             >
                               ลบประเภทนักเรียน
                             </Button>
@@ -367,14 +621,30 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                             { type: "", percentage: "" },
                           ]);
                         }}
-                        sx={{ mt: 1 }}
+                        sx={{ 
+                          mt: 1,
+                          background: "rgba(34, 197, 94, 0.15)",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          border: "1px solid rgba(34, 197, 94, 0.3)",
+                          color: "#bbf7d0",
+                          "&:hover": {
+                            background: "rgba(34, 197, 94, 0.25)",
+                            borderColor: "rgba(34, 197, 94, 0.5)",
+                            boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                            transform: "translateY(-2px)",
+                          },
+                        }}
                       >
                         เพิ่มประเภทนักเรียน
                       </Button>
                     </Box>
                   ) : fieldObj.field === "subject" ? (
                     <FormControl fullWidth margin="normal" key={fieldObj.field}>
-                      <InputLabel id="subject-select-label">
+                      <InputLabel 
+                        id="subject-select-label"
+                        sx={{ color: "#bbf7d0" }}
+                      >
                         {fieldObj.label}
                       </InputLabel>
                       <Select
@@ -382,6 +652,45 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                         value={configFields.subject || ""}
                         label={fieldObj.label}
                         onChange={(e) => onChange("subject", e.target.value)}
+                        sx={{
+                          background: "rgba(240, 253, 244, 0.1)",
+                          backdropFilter: "blur(8px)",
+                          WebkitBackdropFilter: "blur(8px)",
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "rgba(34, 197, 94, 0.2)",
+                          },
+                          "&:hover .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "rgba(34, 197, 94, 0.4)",
+                          },
+                          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "rgba(34, 197, 94, 0.6)",
+                          },
+                          "& .MuiSelect-select": {
+                            color: "#f0fdf4",
+                          },
+                          "& .MuiSvgIcon-root": {
+                            color: "#bbf7d0",
+                          },
+                        }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              background: "rgba(21, 128, 61, 0.12)",
+                              backdropFilter: "blur(20px)",
+                              WebkitBackdropFilter: "blur(20px)",
+                              border: "1px solid rgba(34, 197, 94, 0.25)",
+                              "& .MuiMenuItem-root": {
+                                color: "#f0fdf4",
+                                "&:hover": {
+                                  background: "rgba(34, 197, 94, 0.15)",
+                                },
+                                "&.Mui-selected": {
+                                  background: "rgba(34, 197, 94, 0.2)",
+                                },
+                              },
+                            },
+                          },
+                        }}
                       >
                         {SUBJECT_OPTIONS.map((option) => (
                           <MenuItem value={option} key={option}>
@@ -407,6 +716,28 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                           ? "number"
                           : "text"
                       }
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          background: "rgba(240, 253, 244, 0.1)",
+                          backdropFilter: "blur(8px)",
+                          WebkitBackdropFilter: "blur(8px)",
+                          "& fieldset": {
+                            borderColor: "rgba(34, 197, 94, 0.2)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "rgba(34, 197, 94, 0.4)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "rgba(34, 197, 94, 0.6)",
+                          },
+                          "& input": {
+                            color: "#f0fdf4",
+                          },
+                        },
+                        "& .MuiInputLabel-root": {
+                          color: "#bbf7d0",
+                        },
+                      }}
                     />
                   )
                 )}
@@ -418,8 +749,11 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                   sx={{
                     mt: 2,
                     p: 2,
-                    bgcolor: "background.default",
-                    border: "1px solid #ccc",
+                    background: "rgba(240, 253, 244, 0.08)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    border: "1px solid rgba(34, 197, 94, 0.2)",
+                    boxShadow: "0 8px 32px 0 rgba(21, 128, 61, 0.15)",
                     borderRadius: 2,
                     height: 250, // fixed height
                     maxHeight: 250, // ensure fixed
@@ -444,6 +778,28 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                   margin="normal"
                   multiline
                   minRows={2}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      background: "rgba(240, 253, 244, 0.1)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)",
+                      "& fieldset": {
+                        borderColor: "rgba(34, 197, 94, 0.2)",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "rgba(34, 197, 94, 0.4)",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "rgba(34, 197, 94, 0.6)",
+                      },
+                      "& textarea": {
+                        color: "#f0fdf4",
+                      },
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#bbf7d0",
+                    },
+                  }}
                 />
               )}
 
@@ -452,36 +808,102 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
               >
                 <Button
                   variant="outlined"
-                  color="primary"
                   onClick={onPreviousStep}
                   disabled={configStep === 0 && !showResponse}
+                  sx={{
+                    background: "rgba(156, 163, 175, 0.15)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    border: "1px solid rgba(156, 163, 175, 0.3)",
+                    color: "#d1d5db",
+                    "&:hover": {
+                      background: "rgba(156, 163, 175, 0.25)",
+                      borderColor: "rgba(156, 163, 175, 0.5)",
+                    },
+                    "&:disabled": {
+                      background: "rgba(156, 163, 175, 0.05)",
+                      borderColor: "rgba(156, 163, 175, 0.1)",
+                      color: "rgba(156, 163, 175, 0.4)",
+                    },
+                  }}
                 >
                   กลับ
                 </Button>
                 {configStep === stepConfigFields.length - 1 ? (
                   <Button
                     variant="contained"
-                    color="primary"
                     onClick={onSubmit}
                     disabled={loading}
+                    sx={{
+                      background: "rgba(34, 197, 94, 0.2)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                      color: "#bbf7d0",
+                      "&:hover": {
+                        background: "rgba(34, 197, 94, 0.3)",
+                        borderColor: "rgba(34, 197, 94, 0.5)",
+                        boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                        transform: "translateY(-2px)",
+                      },
+                      "&:disabled": {
+                        background: "rgba(34, 197, 94, 0.1)",
+                        borderColor: "rgba(34, 197, 94, 0.15)",
+                        color: "rgba(34, 197, 94, 0.4)",
+                      },
+                    }}
                   >
                     {loading ? "Generating..." : "Generate"}
                   </Button>
                 ) : !showResponse ? (
                   <Button
                     variant="contained"
-                    color="primary"
                     onClick={onStepSubmit}
                     disabled={loading}
+                    sx={{
+                      background: "rgba(34, 197, 94, 0.2)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                      color: "#bbf7d0",
+                      "&:hover": {
+                        background: "rgba(34, 197, 94, 0.3)",
+                        borderColor: "rgba(34, 197, 94, 0.5)",
+                        boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                        transform: "translateY(-2px)",
+                      },
+                      "&:disabled": {
+                        background: "rgba(34, 197, 94, 0.1)",
+                        borderColor: "rgba(34, 197, 94, 0.15)",
+                        color: "rgba(34, 197, 94, 0.4)",
+                      },
+                    }}
                   >
                     {loading ? "Loading..." : "ถัดไป"}
                   </Button>
                 ) : (
                   <Button
                     variant="contained"
-                    color="primary"
                     onClick={() => onFeedbackSubmit(feedback)}
                     disabled={loading}
+                    sx={{
+                      background: "rgba(34, 197, 94, 0.2)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                      color: "#bbf7d0",
+                      "&:hover": {
+                        background: "rgba(34, 197, 94, 0.3)",
+                        borderColor: "rgba(34, 197, 94, 0.5)",
+                        boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                        transform: "translateY(-2px)",
+                      },
+                      "&:disabled": {
+                        background: "rgba(34, 197, 94, 0.1)",
+                        borderColor: "rgba(34, 197, 94, 0.15)",
+                        color: "rgba(34, 197, 94, 0.4)",
+                      },
+                    }}
                   >
                     ไปต่อ
                   </Button>

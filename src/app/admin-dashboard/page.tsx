@@ -122,19 +122,43 @@ const AdminDashboard: React.FC = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="p-8 min-h-screen">
+      <h1 className="text-2xl font-bold mb-4 text-green-50 drop-shadow-lg">Admin Dashboard</h1>
       {/* Material UI Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+      <Box sx={{ 
+        borderBottom: 1, 
+        borderColor: 'rgba(34, 197, 94, 0.3)', 
+        mb: 4,
+        background: "rgba(21, 128, 61, 0.08)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(34, 197, 94, 0.18)",
+        borderRadius: 2,
+        p: 2,
+      }}>
+        <Tabs 
+          value={tab} 
+          onChange={(_, v) => setTab(v)}
+          sx={{
+            "& .MuiTab-root": {
+              color: "#bbf7d0",
+              "&.Mui-selected": {
+                color: "#f0fdf4",
+              },
+            },
+            "& .MuiTabs-indicator": {
+              backgroundColor: "#22c55e",
+            },
+          }}
+        >
           <Tab label="Users" />
           <Tab label="Sessions" />
         </Tabs>
       </Box>
       {tab === 0 && (
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-2">Users</h2>
-          <button className="mb-2 px-4 py-2 bg-blue-500 text-white rounded" onClick={handleAddUser}>Add User</button>
+          <h2 className="text-xl font-semibold mb-2 text-green-100">Users</h2>
+          <button className="mb-2 px-4 py-2 glass-button rounded-lg text-green-100 font-medium transition-all duration-300 hover:scale-105" onClick={handleAddUser}>Add User</button>
           {(() => {
             // Compute all unique keys from all users
             const allUserKeysSet = new Set<string>();
@@ -163,12 +187,30 @@ const AdminDashboard: React.FC = () => {
                         setUserFilters(f => ({ ...f, [key]: e.target.value }));
                         setUserPage(0);
                       }}
-                      className="border px-2 py-1 rounded"
+                      className="glass-input border-0 px-2 py-1 rounded-lg text-green-50 placeholder-green-200"
                       style={{ minWidth: 120 }}
                     />
                   ))}
                 </Box>
-                <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+                <TableContainer 
+                  component={Paper} 
+                  sx={{ 
+                    maxHeight: 600,
+                    background: "rgba(21, 128, 61, 0.08)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    border: "1px solid rgba(34, 197, 94, 0.18)",
+                    "& .MuiTableCell-root": {
+                      color: "#dcfce7",
+                      borderColor: "rgba(34, 197, 94, 0.15)",
+                    },
+                    "& .MuiTableHead-root .MuiTableCell-root": {
+                      background: "rgba(21, 128, 61, 0.15)",
+                      color: "#f0fdf4",
+                      fontWeight: 600,
+                    },
+                  }}
+                >
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
@@ -272,7 +314,7 @@ const AdminDashboard: React.FC = () => {
       )}
       {tab === 1 && (
         <section>
-          <h2 className="text-xl font-semibold mb-2">Sessions</h2>
+          <h2 className="text-xl font-semibold mb-2 text-green-100">Sessions</h2>
           {(() => {
             // Compute all unique keys from all sessions, ensure 'userEmail' is included and appears after 'Actions'
             const allKeysSet = new Set<string>();
@@ -312,7 +354,7 @@ const AdminDashboard: React.FC = () => {
                         setSessionFilters(f => ({ ...f, [key]: e.target.value }));
                         setSessionPage(0);
                       }}
-                      className="border px-2 py-1 rounded"
+                      className="glass-input border-0 px-2 py-1 rounded-lg text-green-50 placeholder-green-200"
                       style={{ minWidth: 120 }}
                     />
                   ))}

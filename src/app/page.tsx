@@ -1,615 +1,418 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Container,
   Grid,
   Typography,
   Button,
-  Backdrop,
-  CircularProgress,
   Box,
+  Card,
+  CardContent,
+  Avatar,
+  IconButton,
 } from "@mui/material";
-import axios from "axios";
-import ChatInput from "../components/ChatInput";
-import JsonResponse from "../components/JsonResponse";
-import ConfigModal, { stepConfigFields } from "../components/ConfigModal";
-import PdfResponse from "../components/PdfResponse";
-import dynamic from "next/dynamic";
-import LogoutIcon from "@mui/icons-material/Logout";
-import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
-import DownloadIcon from "@mui/icons-material/Download";
-import LoginModal from "@/components/LoginModal";
-import ListIcon from "@mui/icons-material/List";
+import LoginIcon from "@mui/icons-material/Login";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import SchoolIcon from "@mui/icons-material/School";
+import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import GroupIcon from "@mui/icons-material/Group";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import StarIcon from "@mui/icons-material/Star";
+import InclusiveLearningLogo from "@/components/InclusiveLearningLogo";
 
-
-const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false });
-
-// --- Centralized API call helper for 401 handling ---
-async function apiCallWith401<T>(
-  apiCall: () => Promise<T>,
-  on401: () => void
-): Promise<T | undefined> {
-  try {
-    return await apiCall();
-  } catch (error: any) {
-    if (
-      (error?.response && error.response.status === 401) ||
-      error?.status === 401 ||
-      error?.status === 400
-    ) {
-      localStorage.removeItem("token");
-      on401();
-      return;
-    }
-    throw error;
-  }
-}
-
-export default function ChatPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState("");
-  const [generateTextResponse, setGenerateTextResponse] = useState("");
-  const [configResponse, setConfigResponse] = useState("");
-  const [generateJsonResponse, setGenerateJsonResponse] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [generateStep, setGenerateStep] = useState(0);
-  const [nextQuestion, setNextQuestion] = useState("");
-  const [conversationHistory, setConversationHistory] = useState<
-    { question: string; userMessage: string; aiResponse?: string }[]
-  >([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [configStep, setConfigStep] = useState(0);
-  const [configFields, setConfigFields] = useState({
-    subject: "",
-    lessonTopic: "",
-    level: "",
-    numStudents: "",
-    studentType: [{ type: "", percentage: "" }],
-    studyPeriod: "",
-    limitation: "",
-  });
-  const [showResponse, setShowResponse] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [docxUrl, setDocxUrl] = useState<string | null>(null);
-  const [fileViewError, setFileViewError] = useState(false);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null
-  );
-  const [errorWarning, setErrorWarning] = useState(false);
-  const [fileViewerKey, setFileViewerKey] = useState(0);
-  const fileViewerContainerRef = useRef<HTMLDivElement>(null);
-
+export default function LandingPage() {
   const router = useRouter();
 
-  // Centralized fetchSession using apiCallWith401
-  const fetchSession = (sessionId?: string | null) => {
+  useEffect(() => {
+    // Check if user is already logged in
     const token = localStorage.getItem("token");
-    if (!token) {
-      setLoginModalOpen(true);
-      return;
+    if (token) {
+      // Check if token is valid
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
+        if (decodedToken.exp > Date.now() / 1000) {
+          // Token is valid, redirect to session page
+          router.push("/session");
+        } else {
+          localStorage.removeItem("token");
+        }
+      } catch (error) {
+        localStorage.removeItem("token");
+      }
     }
-    try {
-      const decodedToken = JSON.parse(atob(token.split(".")[1]));
-      setUserId(decodedToken.userId);
-
-      apiCallWith401(
-        async () => {
-          const res = await axios.post(
-            "/api/session",
-            { sessionId: sessionId },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const data = res.data;
-          if (data.docxBuffer) {
-            setModalOpen(false);
-            const buffer = Buffer.from(data.docxBuffer, "base64");
-            const url = URL.createObjectURL(
-              new Blob([buffer], {
-                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              })
-            );
-            await setDocxUrl(null);
-            console.log("Setting DOCX URL:", url);
-            await setDocxUrl(url);
-            setFileViewerKey((prev) => prev + 1);
-          } else {
-            setDocxUrl(null);
-            setModalOpen(true);
-            if (!data.configStep) {
-              setConfigStep(0);
-              setShowResponse(false);
-            } else {
-              setConfigStep(data.configStep - 1 ?? 0);
-              if (data.configResponse) {
-                setConfigResponse(data.configResponse || {});
-                setShowResponse(true);
-              }
-            }
-          }
-        },
-        () => setLoginModalOpen(true)
-      );
-    } catch (error) {
-      localStorage.removeItem("token");
-      setLoginModalOpen(true);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedSessionId) {
-      localStorage.setItem("selectedSessionId", selectedSessionId);
-    } else {
-      localStorage.removeItem("selectedSessionId");
-    }
-  }, [selectedSessionId]);
-
-  useEffect(() => {
-    if (selectedSessionId) {
-      setLoginModalOpen(false);
-      fetchSession(selectedSessionId);
-    } else {
-      setLoginModalOpen("session");
-    }
-    // eslint-disable-next-line
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setLoginModalOpen(true);
+  const handleGetStarted = () => {
+    router.push("/session");
   };
 
-  const handleConfigNextStep = async () => {
-    // Renamed handler
-    if (!showResponse) return;
-    const nextStep = configStep + 1;
-    console.log("configStep:", configStep);
-    setConfigStep(nextStep);
-    setShowResponse(false);
-    setConfigResponse("");
+  const handleRegister = () => {
+    router.push("/session?action=register");
+  };
 
-    if (stepConfigFields[nextStep] && stepConfigFields[nextStep].length === 0) {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.post(
-          `/api/chat/step/${nextStep}`,
-          { ...configFields, sessionId: selectedSessionId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = res.data;
-        setConfigResponse(data.response);
-        setShowResponse(true);
-      } catch (error) {
-        console.error("Error auto-advancing step:", error);
-      }
-      setLoading(false);
+  const features = [
+    {
+      icon: <SmartToyIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "AI-Powered Lesson Planning",
+      description: "สร้างแผนการสอนที่ปรับแต่งได้ด้วยปัญญาประดิษฐ์ที่เข้าใจความต้องการของนักเรียนแต่ละคน"
+    },
+    {
+      icon: <AccessibilityNewIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "Inclusive Learning Design",
+      description: "ออกแบบการเรียนการสอนที่รองรับนักเรียนทุกกลุ่ม ทุกความสามารถ และทุกรูปแบบการเรียนรู้"
+    },
+    {
+      icon: <MenuBookIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "Customizable Curriculum",
+      description: "สร้างหลักสูตรที่ยืดหยุ่น ปรับแต่งได้ตามบริบทของห้องเรียนและความต้องการของนักเรียน"
+    },
+    {
+      icon: <GroupIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "Collaborative Platform",
+      description: "แพลตฟอร์มที่ส่งเสริมการทำงานร่วมกันระหว่างครูและนักเรียนในการพัฒนาการเรียนรู้"
+    },
+    {
+      icon: <TrendingUpIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "Progress Tracking",
+      description: "ติดตามความก้าวหน้าและประเมินผลการเรียนรู้แบบต่อเนื่อง พร้อมข้อมูลเชิงลึก"
+    },
+    {
+      icon: <StarIcon sx={{ fontSize: 40, color: "#22c55e" }} />,
+      title: "Quality Assurance",
+      description: "มั่นใจในคุณภาพการศึกษาด้วยระบบประกันคุณภาพที่ครอบคลุมทุกมิติของการเรียนรู้"
     }
-  };
-
-  const handleConfigFieldChange = (field: string, value: any) => {
-    setShowResponse(false);
-    setConfigResponse("");
-    if (field === "studentType") {
-      setConfigFields((prev) => ({
-        ...prev,
-        studentType: value,
-      }));
-    } else {
-      setConfigFields((prev) => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const handleConfigStepSubmit = async () => {
-    console.log("Submitting config step:", configStep);
-    setLoading(true);
-    await apiCallWith401(
-      async () => {
-        const token = localStorage.getItem("token");
-        const res = await axios.post(
-          `/api/chat/step/${configStep}`,
-          { ...configFields, sessionId: selectedSessionId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = res.data;
-        setConfigResponse(data.response);
-        setShowResponse(true);
-      },
-      () => setLoginModalOpen(true)
-    ).catch((error) => {
-      if (error?.response && error.response.status === 404) {
-        setErrorWarning(true);
-        setShowResponse(false);
-      } else {
-        console.error("Error advancing step:", error);
-      }
-    });
-    setLoading(false);
-  };
-
-  const handleConfigPreviousStep = async () => {
-    // If previous step has no input fields, just go back a step
-
-    if (showResponse) {
-      setShowResponse(false);
-      setConfigResponse("");
-    } else {
-      setLoading(true);
-      await apiCallWith401(
-        async () => {
-          setConfigStep((prev) => Math.max(prev - 1, 0));
-          const token = localStorage.getItem("token");
-          const res = await axios.post(
-            "/api/session",
-            { sessionId: selectedSessionId, configStep: configStep },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-          const data = res.data;
-          setConfigResponse(data.configResponse || "");
-          setShowResponse(true);
-        },
-        () => setLoginModalOpen(true)
-      );
-      setLoading(false);
-    }
-  };
-
-  const handleModalSubmit = async () => {
-    setLoading(true);
-
-    await apiCallWith401(
-      async () => {
-        const token = localStorage.getItem("token");
-        const res = await axios.post(
-          "/api/generate",
-          { ...configFields, userId, sessionId: selectedSessionId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            responseType: "arraybuffer",
-          }
-        );
-
-        const contentType = res.headers["content-type"];
-        if (
-          contentType ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ) {
-          const blob = new Blob([res.data], {
-            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          });
-          const url = URL.createObjectURL(blob);
-          setDocxUrl(url);
-          setPdfUrl(null);
-          setGenerateJsonResponse(null);
-        } else if (contentType === "application/pdf") {
-          const blob = new Blob([res.data], { type: "application/pdf" });
-          const url = URL.createObjectURL(blob);
-          setPdfUrl(url);
-          setDocxUrl(null);
-          setGenerateJsonResponse(null);
-        } else {
-          const text = new TextDecoder().decode(res.data);
-          const data = JSON.parse(text);
-
-          if (data.type === "json") {
-            setGenerateJsonResponse(data.lessonPlan || data.improvedLessonPlan);
-            setPdfUrl(null);
-            setDocxUrl(null);
-          } else if (data.type === "text") {
-            setGenerateTextResponse(
-              data.nextQuestion || "No further questions."
-            );
-            setPdfUrl(null);
-            setDocxUrl(null);
-            setGenerateJsonResponse(null);
-          }
-        }
-
-        // Save reflection if present (last step)
-        if (
-          configFields.reflection1 ||
-          configFields.reflection2 ||
-          configFields.reflection3 ||
-          configFields.reflection4 ||
-          configFields.reflection5
-        ) {
-          await apiCallWith401(
-            async () => {
-              await axios.post(
-                "/api/session/reflection",
-                {
-                  sessionId: selectedSessionId,
-                  reflection: {
-                    reflection1: configFields.reflection1,
-                    reflection2: configFields.reflection2,
-                    reflection3: configFields.reflection3,
-                    reflection4: configFields.reflection4,
-                    reflection5: configFields.reflection5,
-                  },
-                },
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                }
-              );
-            },
-            () => setLoginModalOpen(true)
-          );
-        }
-
-        setModalOpen(false);
-      },
-      () => setLoginModalOpen(true)
-    );
-
-    setLoading(false);
-  };
-
-  const handleClearSession = async () => {
-    await apiCallWith401(
-      async () => {
-        const token = localStorage.getItem("token");
-        await axios.post(
-          "/api/auth/clear_session",
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        alert("Session cleared successfully!");
-        window.location.reload();
-      },
-      () => setLoginModalOpen(true)
-    );
-  };
-
-  const handleFeedbackSubmit = async (feedback: string) => {
-    console.log("Submitting feedback:", feedback);
-    const feedbackField = `feedback${configStep + 1}`;
-    setLoading(true);
-    await apiCallWith401(
-      async () => {
-        const token = localStorage.getItem("token");
-        await axios.post(
-          "/api/session/feedback",
-          {
-            sessionId: selectedSessionId,
-            feedbackField,
-            feedback,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setConfigFields((prev) => ({
-          ...prev,
-          [feedbackField]: feedback,
-        }));
-        await handleConfigNextStep();
-      },
-      () => setLoginModalOpen(true)
-    );
-    setLoading(false);
-  };
-
-  // Detect iframe load inside FileViewer
-  useEffect(() => {
-    if (!docxUrl || !fileViewerContainerRef.current) return;
-    const iframe = fileViewerContainerRef.current.querySelector("iframe");
-    if (iframe) {
-      const handleLoad = () => setLoading(false);
-      iframe.addEventListener("load", handleLoad);
-      return () => {
-        iframe.removeEventListener("load", handleLoad);
-      };
-    }
-  }, [docxUrl, fileViewerKey]);
+  ];
 
   return (
-    <Container maxWidth="md">
-      {/* Page-level loading backdrop (shows only if both modals are closed) */}
-      <Backdrop
-        open={loading && !modalOpen && !loginModalOpen}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background with glassmorphism overlay */}
+      <Box
         sx={{
-          color: "#333",
-          zIndex: (theme) => theme.zIndex.drawer + 2,
-          backgroundColor: "rgba(255,255,255,0.7)",
-          backdropFilter: "blur(6px)",
-          position: "fixed",
-        }}
-      >
-        <CircularProgress color="inherit" />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          กำลังโหลดเอกสาร...
-        </Typography>
-      </Backdrop>
-
-      <LoginModal
-        open={!!loginModalOpen}
-        forceSessionStep={loginModalOpen === "session"}
-        onLoginSuccess={(sessionId) => {
-          setLoading(true);
-          console.log("Login successful, sessionId:", sessionId);
-          setLoginModalOpen(false);
-          setSelectedSessionId(sessionId);
-          fetchSession(sessionId);
-          setLoading(false);
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "linear-gradient(135deg, rgba(21, 128, 61, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          zIndex: -1,
         }}
       />
 
-      <Box
-        sx={{
-          filter: loginModalOpen ? "blur(6px)" : "none",
-          pointerEvents: loginModalOpen ? "none" : "auto",
-          transition: "filter 0.3s",
-        }}
-      >
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        {/* Header Section */}
         <Box
           sx={{
-            boxShadow: "0px 8px 24px rgba(0,0,0,0.18)", // Dropdown-like shadow
-            borderRadius: 2,
-            p: 3,
-            backgroundColor: "#fff",
-            mb: 3,
+            textAlign: "center",
+            mb: 8,
+            background: "rgba(21, 128, 61, 0.08)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(34, 197, 94, 0.18)",
+            boxShadow: "0 8px 32px 0 rgba(21, 128, 61, 0.2)",
+            borderRadius: 4,
+            p: 6,
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: "0 12px 40px 0 rgba(21, 128, 61, 0.3)",
+              transform: "translateY(-4px)",
+            },
           }}
         >
-          <Box
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 3 }}>
+            <Avatar
+              sx={{
+                width: 100,
+                height: 100,
+                background: "linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(21, 128, 61, 0.3) 100%)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "2px solid rgba(34, 197, 94, 0.3)",
+                mr: 4,
+                boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.3)",
+              }}
+            >
+              <InclusiveLearningLogo sx={{ fontSize: 60, color: "#22c55e" }} />
+            </Avatar>
+            <Box sx={{ textAlign: "left" }}>
+              <Typography
+                variant="h2"
+                className="brand-title"
+                sx={{
+                  color: "#f0fdf4",
+                  fontWeight: 800,
+                  textShadow: "0 4px 12px rgba(21, 128, 61, 0.5)",
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  mb: 1,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Inclusive Learning AI
+              </Typography>
+              <Typography
+                variant="h6"
+                className="brand-subtitle"
+                sx={{
+                  color: "rgba(240, 253, 244, 0.8)",
+                  fontWeight: 300,
+                  letterSpacing: 1.2,
+                }}
+              >
+                แพลตฟอร์มการศึกษาที่เท่าเทียมสำหรับทุกคน
+              </Typography>
+            </Box>
+          </Box>
+
+          <Typography
+            variant="h5"
+            className="brand-subtitle"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              mb: 2,
+              color: "#dcfce7",
+              mb: 4,
+              maxWidth: 800,
+              mx: "auto",
+              lineHeight: 1.6,
+              fontWeight: 400,
             }}
           >
-            <Typography variant="h4" gutterBottom sx={{ flex: 1 }}>
-              Inclusive Learning
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                size="small"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                sx={{ minWidth: 0, px: 1.5 }}
-              >
-                ออกจากระบบ
-              </Button>
-              {/* Session Selection Button */}
-              <Button
-                variant="outlined"
-                color="primary"
-                size="small"
-                startIcon={<ListIcon />}
-                onClick={() => setLoginModalOpen("session")}
-                sx={{ minWidth: 0, px: 1.5 }}
-              >
-                แผนการสอนของคุณ
-              </Button>
-            </Box>
+            ปฏิวัติการสอนด้วยปัญญาประดิษฐ์ที่เข้าใจความแตกต่างของนักเรียนแต่ละคน 
+            สร้างแผนการเรียนรู้ที่ครอบคลุม เข้าถึงได้ และมีประสิทธิภาพ
+          </Typography>
+
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<LoginIcon />}
+              onClick={handleGetStarted}
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: "1.1rem",
+                background: "rgba(34, 197, 94, 0.2)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(34, 197, 94, 0.3)",
+                color: "#f0fdf4",
+                fontWeight: 600,
+                borderRadius: 3,
+                "&:hover": {
+                  background: "rgba(34, 197, 94, 0.3)",
+                  borderColor: "rgba(34, 197, 94, 0.5)",
+                  boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              เริ่มต้นใช้งาน
+            </Button>
+            
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<PersonAddIcon />}
+              onClick={handleRegister}
+              sx={{
+                px: 4,
+                py: 1.5,
+                fontSize: "1.1rem",
+                background: "rgba(240, 253, 244, 0.1)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(34, 197, 94, 0.3)",
+                color: "#bbf7d0",
+                fontWeight: 600,
+                borderRadius: 3,
+                "&:hover": {
+                  background: "rgba(240, 253, 244, 0.15)",
+                  borderColor: "rgba(34, 197, 94, 0.5)",
+                  boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.3)",
+                  transform: "translateY(-2px)",
+                },
+              }}
+            >
+              สมัครสมาชิก
+            </Button>
           </Box>
         </Box>
 
-        <ConfigModal
-          open={modalOpen}
-          loading={loading}
-          configStep={configStep}
-          configFields={configFields}
-          response={configResponse}
-          showResponse={showResponse}
-          onClose={() => setModalOpen(false)}
-          onChange={handleConfigFieldChange}
-          onStepSubmit={handleConfigStepSubmit}
-          onSubmit={handleModalSubmit}
-          onNextStep={handleConfigNextStep}
-          onPreviousStep={handleConfigPreviousStep}
-          maxWidth="lg"
-          fullWidth={true}
-          onSectionSelection={() => setLoginModalOpen("session")}
-          onFeedbackSubmit={handleFeedbackSubmit}
-          onError={() => setShowResponse(false)}
-          errorWarning={errorWarning}
-          onClearErrorWarning={() => {
-            setErrorWarning(false);
-            setShowResponse(false);
-          }}
-        />
-
-        <Box
+        {/* Features Section */}
+        <Typography
+          variant="h3"
+          className="brand-title"
           sx={{
-            boxShadow: "0px 8px 24px rgba(0,0,0,0.18)", // Dropdown-like shadow
-            borderRadius: 2,
-            p: 3,
-            backgroundColor: "#fff",
-            mb: 3,
+            textAlign: "center",
+            color: "#f0fdf4",
+            fontWeight: 700,
+            mb: 6,
+            textShadow: "0 2px 8px rgba(21, 128, 61, 0.3)",
           }}
         >
-          <Grid container spacing={3}>
-            {/* <Grid item xs={12} md={6}>
-              <ChatInput
-                prompt={prompt}
-                setPrompt={setPrompt}
-                nextQuestion={nextQuestion}
-                loading={loading}
-                handleSubmit={handleModalSubmit}
-                conversationHistory={conversationHistory}
-              />
-            </Grid> */}
+          คุณสมบัติเด่น
+        </Typography>
 
-            <Grid item xs={12} md={20}>
-              {docxUrl ? (
-                <>
-                  {/* Download button always on top */}
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    href={docxUrl}
-                    download="curriculum.docx"
-                    startIcon={<DownloadIcon />}
-                    sx={{ mb: 2 }}
+        <Grid container spacing={4}>
+          {features.map((feature, index) => (
+            <Grid item xs={12} md={6} lg={4} key={index}>
+              <Card
+                sx={{
+                  height: "100%",
+                  background: "rgba(21, 128, 61, 0.08)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  border: "1px solid rgba(34, 197, 94, 0.18)",
+                  boxShadow: "0 8px 32px 0 rgba(21, 128, 61, 0.2)",
+                  borderRadius: 3,
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    boxShadow: "0 12px 40px 0 rgba(21, 128, 61, 0.3)",
+                    transform: "translateY(-8px)",
+                    borderColor: "rgba(34, 197, 94, 0.3)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: 4, textAlign: "center" }}>
+                  <Box sx={{ mb: 3 }}>
+                    {feature.icon}
+                  </Box>
+                  <Typography
+                    variant="h5"
+                    className="brand-title"
+                    sx={{
+                      color: "#f0fdf4",
+                      fontWeight: 600,
+                      mb: 2,
+                      textShadow: "0 1px 4px rgba(21, 128, 61, 0.3)",
+                    }}
                   >
-                    Download Curriculum (.docx)
-                  </Button>
-                  <Typography variant="body1" gutterBottom>
-                    เอกสารอาจแสดงผลไม่ถูกต้องบนเบราว์เซอร์ กรุณากด "Download
-                    Curriculum (.docx)" เพื่อดาวน์โหลดเอกสารและเปิดด้วยโปรแกรม
-                    Microsoft Word หรือ LibreOffice
+                    {feature.title}
                   </Typography>
-                  {!fileViewError ? (
-                    <div
-                      ref={fileViewerContainerRef}
-                      style={{
-                        width: "100%",
-                        height: "80vh",
-                        overflow: "auto",
-                        border: "1px solid #ccc",
-                      }}
-                    >
-                      <FileViewer
-                        key={fileViewerKey}
-                        fileType="docx"
-                        filePath={docxUrl}
-                        onError={() => {
-                          setFileViewError(true);
-                          setLoading(false);
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <Typography color="error" sx={{ mt: 2 }}>
-                      Unable to preview DOCX. Please download the file.
-                    </Typography>
-                  )}
-                </>
-              ) : pdfUrl ? (
-                <PdfResponse pdfUrl={pdfUrl} />
-              ) : (
-                <Typography>No document available.</Typography>
-              )}
+                  <Typography
+                    variant="body1"
+                    className="brand-subtitle"
+                    sx={{
+                      color: "#dcfce7",
+                      lineHeight: 1.6,
+                      fontSize: "1rem",
+                    }}
+                  >
+                    {feature.description}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
-          </Grid>
+          ))}
+        </Grid>
+
+        {/* Call to Action Section */}
+        <Box
+          sx={{
+            textAlign: "center",
+            mt: 10,
+            background: "rgba(21, 128, 61, 0.08)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(34, 197, 94, 0.18)",
+            boxShadow: "0 8px 32px 0 rgba(21, 128, 61, 0.2)",
+            borderRadius: 4,
+            p: 6,
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: "0 12px 40px 0 rgba(21, 128, 61, 0.3)",
+              transform: "translateY(-4px)",
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            className="brand-title"
+            sx={{
+              color: "#f0fdf4",
+              fontWeight: 700,
+              mb: 3,
+              textShadow: "0 2px 8px rgba(21, 128, 61, 0.3)",
+            }}
+          >
+            พร้อมเริ่มต้นแล้วใช่ไหม?
+          </Typography>
+          
+          <Typography
+            variant="h6"
+            className="brand-subtitle"
+            sx={{
+              color: "#dcfce7",
+              mb: 4,
+              maxWidth: 600,
+              mx: "auto",
+              lineHeight: 1.6,
+            }}
+          >
+            เข้าร่วมกับครูและนักการศึกษาหลายพันคนที่กำลังใช้ Inclusive Learning AI 
+            ในการสร้างประสบการณ์การเรียนรู้ที่ดีกว่า
+          </Typography>
+
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<SchoolIcon />}
+            onClick={handleGetStarted}
+            sx={{
+              px: 6,
+              py: 2,
+              fontSize: "1.2rem",
+              background: "linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(21, 128, 61, 0.4) 100%)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(34, 197, 94, 0.4)",
+              color: "#f0fdf4",
+              fontWeight: 700,
+              borderRadius: 4,
+              boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.3)",
+              "&:hover": {
+                background: "linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(21, 128, 61, 0.5) 100%)",
+                borderColor: "rgba(34, 197, 94, 0.6)",
+                boxShadow: "0 12px 35px 0 rgba(34, 197, 94, 0.5)",
+                transform: "translateY(-3px)",
+              },
+            }}
+          >
+            เริ่มสร้างแผนการสอน
+          </Button>
         </Box>
-      </Box>
-    </Container>
+
+        {/* Footer */}
+        <Box
+          sx={{
+            textAlign: "center",
+            mt: 8,
+            pt: 4,
+            borderTop: "1px solid rgba(34, 197, 94, 0.2)",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: "rgba(240, 253, 244, 0.6)",
+              fontSize: "0.9rem",
+            }}
+          >
+            © 2025 Inclusive Learning AI. สร้างด้วยความใส่ใจในการศึกษาที่เท่าเทียม
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   );
 }

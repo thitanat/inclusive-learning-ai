@@ -35,9 +35,10 @@ interface LoginModalProps {
   open: boolean;
   onLoginSuccess: (sessionId: string | null) => void;
   forceSessionStep?: boolean;
+  forceRegister?: boolean;
 }
 
-export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: LoginModalProps) {
+export default function LoginModal({ open, onLoginSuccess, forceSessionStep, forceRegister }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState(""); // เพิ่ม state
@@ -89,8 +90,13 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
     } else if (open && !forceSessionStep) {
       setStep(0); // Always start at welcome step
       setUserId(null);
+      if (forceRegister) {
+        setIsRegister(true);
+      } else {
+        setIsRegister(false);
+      }
     }
-  }, [open, forceSessionStep]);
+  }, [open, forceSessionStep, forceRegister]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -183,15 +189,31 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
   };
 
   return (
-    <Dialog open={open} disableEscapeKeyDown maxWidth="md" fullWidth sx={{ minWidth: 500 }}>
+    <Dialog 
+      open={open} 
+      disableEscapeKeyDown 
+      maxWidth="md" 
+      fullWidth 
+      sx={{ 
+        minWidth: 500,
+        "& .MuiDialog-paper": {
+          background: "rgba(21, 128, 61, 0.12)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(34, 197, 94, 0.25)",
+          boxShadow: "0 25px 50px -12px rgba(21, 128, 61, 0.5)",
+          borderRadius: 3,
+        }
+      }}
+    >
       {/* Loading Backdrop for LoginModal only */}
       <Backdrop
         open={loading}
         sx={{
-          color: "#333",
+          color: "#f0fdf4",
           zIndex: (theme) => theme.zIndex.modal + 1,
-          backgroundColor: "rgba(255,255,255,0.7)",
-          backdropFilter: "blur(6px)",
+          backgroundColor: "rgba(21, 128, 61, 0.3)",
+          backdropFilter: "blur(12px)",
           position: "absolute",
           top: 0,
           left: 0,
@@ -200,30 +222,34 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
           flexDirection: "column",
         }}
       >
-        <CircularProgress color="inherit" />
-        <Typography variant="h6" sx={{ mt: 2 }}>
+        <CircularProgress sx={{ color: "#22c55e" }} />
+        <Typography variant="h6" sx={{ mt: 2, color: "#f0fdf4" }}>
           กำลังดำเนินการ...
         </Typography>
       </Backdrop>
       {step === 0 ? (
         <>
-          <DialogTitle>AI-Inclusive Classroom</DialogTitle>
+          <DialogTitle sx={{ color: "#f0fdf4", fontWeight: 600 }}>AI-Inclusive Classroom</DialogTitle>
           <DialogContent>
             <Box sx={{ minWidth: 400, py: 2, textAlign: "center" }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ color: "#dcfce7", fontWeight: 600 }}>
                 ยินดีต้อนรับ!
               </Typography>
               <Box
                 sx={{
                   maxHeight: 180,
                   overflowY: "auto",
-                  background: "#f5f5f5",
+                  background: "rgba(240, 253, 244, 0.1)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  border: "1px solid rgba(34, 197, 94, 0.2)",
                   borderRadius: 2,
                   p: 2,
                   mb: 2,
                   textAlign: "left",
                   fontSize: 15,
                   whiteSpace: "pre-line",
+                  color: "#dcfce7",
                 }}
               >
                 ห้องเรียนแบบเรียนรวม  (Inclusive Classroom) หมายถึง ห้องเรียนที่จัดให้นักเรียนที่มีความต้องการพิเศษและ
@@ -236,18 +262,22 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                 sx={{
                   maxHeight: 220,
                   overflowY: "auto",
-                  background: "#f9f9f9",
+                  background: "rgba(240, 253, 244, 0.08)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  border: "1px solid rgba(34, 197, 94, 0.15)",
                   borderRadius: 2,
                   p: 2,
                   mb: 2,
                   textAlign: "left",
                   fontSize: 15,
                   whiteSpace: "pre-line",
+                  color: "#dcfce7",
                 }}
               >
                 <Typography
                   variant="body1"
-                  sx={{ mb: 2, textAlign: "left" }}
+                  sx={{ mb: 2, textAlign: "left", color: "#dcfce7" }}
                 >
                   สวัสดีครับ<br />
                   ขอเรียนเชิญท่านร่วมสร้างปัญญาประดิษฐ์ห้องเรียนแบบรวม ปัญญาประดิษฐ์จะช่วยท่านออกแบบแผนการสอนเพื่อสร้างคุณภาพห้องเรียนแบบเรียนรวม
@@ -261,34 +291,71 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
               </Box>
               <Button
                 variant="contained"
-                color="primary"
                 startIcon={<LoginIcon />}
                 onClick={() => {
                   setIsRegister(false);
                   setStep(1);
                 }}
-                sx={{ mt: 2, mb: 1 }}
+                sx={{ 
+                  mt: 2, 
+                  mb: 1,
+                  background: "rgba(34, 197, 94, 0.2)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
+                  color: "#bbf7d0",
+                  "&:hover": {
+                    background: "rgba(34, 197, 94, 0.3)",
+                    borderColor: "rgba(34, 197, 94, 0.5)",
+                    boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                    transform: "translateY(-2px)",
+                  },
+                }}
                 fullWidth
               >
                 เข้าสู่ระบบ
               </Button>
               <Button
                 variant="outlined"
-                color="secondary"
                 startIcon={<PlayCircleOutlineIcon />}
                 onClick={() => setDemoVideoOpen(true)}
-                sx={{ mb: 1 }}
+                sx={{ 
+                  mb: 1,
+                  background: "rgba(59, 130, 246, 0.15)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                  color: "#bfdbfe",
+                  "&:hover": {
+                    background: "rgba(59, 130, 246, 0.25)",
+                    borderColor: "rgba(59, 130, 246, 0.5)",
+                    boxShadow: "0 8px 25px 0 rgba(59, 130, 246, 0.4)",
+                    transform: "translateY(-2px)",
+                  },
+                }}
                 fullWidth
               >
                 ดูวิดีโอแนะนำการใช้งาน
               </Button>
               <Button
                 variant="outlined"
-                color="primary"
                 startIcon={<AppRegistrationIcon />}
                 onClick={() => {
                   setIsRegister(true);
                   setStep(1);
+                }}
+                sx={{
+                  background: "rgba(139, 92, 246, 0.15)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(139, 92, 246, 0.3)",
+                  color: "#c4b5fd",
+                  "&:hover": {
+                    background: "rgba(139, 92, 246, 0.25)",
+                    borderColor: "rgba(139, 92, 246, 0.5)",
+                    boxShadow: "0 8px 25px 0 rgba(139, 92, 246, 0.4)",
+                    transform: "translateY(-2px)",
+                  },
                 }}
                 fullWidth
               >
@@ -333,7 +400,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
         </>
       ) : step === 1 ? (
         <>
-          <DialogTitle>{isRegister ? "ลงทะเบียน" : "เข้าสู่ระบบ"}</DialogTitle>
+          <DialogTitle sx={{ color: "#f0fdf4", fontWeight: 600 }}>{isRegister ? "ลงทะเบียน" : "เข้าสู่ระบบ"}</DialogTitle>
           <DialogContent>
             <Box
               sx={{
@@ -353,6 +420,28 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     disabled={loading}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        background: "rgba(240, 253, 244, 0.1)",
+                        backdropFilter: "blur(8px)",
+                        WebkitBackdropFilter: "blur(8px)",
+                        "& fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.2)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.4)",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.6)",
+                        },
+                        "& input": {
+                          color: "#f0fdf4",
+                        },
+                      },
+                      "& .MuiInputLabel-root": {
+                        color: "#bbf7d0",
+                      },
+                    }}
                   />
                   <TextField
                     fullWidth
@@ -361,6 +450,28 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     disabled={loading}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        background: "rgba(240, 253, 244, 0.1)",
+                        backdropFilter: "blur(8px)",
+                        WebkitBackdropFilter: "blur(8px)",
+                        "& fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.2)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.4)",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "rgba(34, 197, 94, 0.6)",
+                        },
+                        "& input": {
+                          color: "#f0fdf4",
+                        },
+                      },
+                      "& .MuiInputLabel-root": {
+                        color: "#bbf7d0",
+                      },
+                    }}
                   />
                 </>
               )}
@@ -372,6 +483,28 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    background: "rgba(240, 253, 244, 0.1)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    "& fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.2)",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.4)",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.6)",
+                    },
+                    "& input": {
+                      color: "#f0fdf4",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#bbf7d0",
+                  },
+                }}
               />
               <TextField
                 fullWidth
@@ -381,21 +514,55 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    background: "rgba(240, 253, 244, 0.1)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    "& fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.2)",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.4)",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "rgba(34, 197, 94, 0.6)",
+                    },
+                    "& input": {
+                      color: "#f0fdf4",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#bbf7d0",
+                  },
+                }}
               />
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2, flexDirection: "column", gap: 1 }}>
             <Button
               variant="contained"
-              color="primary"
               startIcon={isRegister ? <AppRegistrationIcon /> : <LoginIcon />}
               onClick={isRegister ? handleRegister : handleLogin}
               fullWidth
               disabled={loading}
+              sx={{
+                background: "rgba(34, 197, 94, 0.2)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(34, 197, 94, 0.3)",
+                color: "#bbf7d0",
+                "&:hover": {
+                  background: "rgba(34, 197, 94, 0.3)",
+                  borderColor: "rgba(34, 197, 94, 0.5)",
+                  boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                  transform: "translateY(-2px)",
+                },
+              }}
             >
               {isRegister ? "ลงทะเบียน" : "เข้าสู่ระบบ"}
             </Button>
-            <Typography variant="body2" sx={{ width: "100%", textAlign: "center" }}>
+            <Typography variant="body2" sx={{ width: "100%", textAlign: "center", color: "#dcfce7" }}>
               {isRegister ? (
                 <>
                   ท่านมีบัญชีอยู่แล้ว?{" "}
@@ -426,7 +593,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
         </>
       ) : (
         <>
-          <DialogTitle>โปรดเลือกแผนการสอน</DialogTitle>
+          <DialogTitle sx={{ color: "#f0fdf4", fontWeight: 600 }}>โปรดเลือกแผนการสอน</DialogTitle>
           <DialogContent>
             <List>
               {sessions.map((session) => (
@@ -436,12 +603,33 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                   sx={{ 
                     cursor: "pointer",
                     opacity: loading ? 0.5 : 1,
-                    pointerEvents: loading ? "none" : "auto"
+                    pointerEvents: loading ? "none" : "auto",
+                    background: "rgba(240, 253, 244, 0.08)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    border: "1px solid rgba(34, 197, 94, 0.15)",
+                    borderRadius: 2,
+                    mb: 1,
+                    "&:hover": {
+                      background: "rgba(240, 253, 244, 0.12)",
+                      borderColor: "rgba(34, 197, 94, 0.3)",
+                      transform: "translateY(-1px)",
+                    },
+                    transition: "all 0.3s ease",
                   }}
                 >
                   <ListItemText
                     primary={`Session: ${session.lessonTopic || session._id}`}
                     secondary={`Step: ${session.configStep ?? 0}`}
+                    sx={{
+                      "& .MuiListItemText-primary": {
+                        color: "#f0fdf4",
+                        fontWeight: 600,
+                      },
+                      "& .MuiListItemText-secondary": {
+                        color: "#bbf7d0",
+                      },
+                    }}
                   />
                   <ListItemSecondaryAction>
                     <IconButton
@@ -466,10 +654,22 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
             <Box sx={{ mt: 2, textAlign: "center" }}>
               <Button
                 variant="outlined"
-                color="primary"
                 startIcon={<AddIcon />}
                 onClick={handleNewSession}
                 disabled={loading}
+                sx={{
+                  background: "rgba(34, 197, 94, 0.15)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
+                  color: "#bbf7d0",
+                  "&:hover": {
+                    background: "rgba(34, 197, 94, 0.25)",
+                    borderColor: "rgba(34, 197, 94, 0.5)",
+                    boxShadow: "0 8px 25px 0 rgba(34, 197, 94, 0.4)",
+                    transform: "translateY(-2px)",
+                  },
+                }}
               >
                 เริ่มแผนการสอนใหม่
               </Button>
@@ -477,7 +677,6 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Button
                 variant="text"
-                color="error"
                 startIcon={<LogoutIcon />}
                 onClick={() => {
                   localStorage.removeItem("token");
@@ -486,6 +685,13 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep }: L
                   setSessions([]);
                 }}
                 disabled={loading}
+                sx={{
+                  color: "#fecaca",
+                  "&:hover": {
+                    background: "rgba(239, 68, 68, 0.1)",
+                    transform: "translateY(-1px)",
+                  },
+                }}
               >
                 ออกจากระบบ
               </Button>

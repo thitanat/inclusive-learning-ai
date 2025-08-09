@@ -31,11 +31,22 @@ const PdfResponse: React.FC<PdfResponseProps> = ({ pdfUrl }) => {
   }, [pdfUrl]);
 
   if (!objectUrl) {
-    return <Typography>No PDF available.</Typography>;
+    return <Typography sx={{ color: "#dcfce7" }}>No PDF available.</Typography>;
   }
 
   return (
-    <Box sx={{ width: "100%", height: "80vh", border: "1px solid #ccc" }}>
+    <Box 
+      sx={{ 
+        width: "100%", 
+        height: "80vh", 
+        border: "1px solid rgba(34, 197, 94, 0.2)",
+        borderRadius: 2,
+        background: "rgba(21, 128, 61, 0.05)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        overflow: "hidden",
+      }}
+    >
       <iframe
         src={objectUrl}
         title="PDF Preview"
