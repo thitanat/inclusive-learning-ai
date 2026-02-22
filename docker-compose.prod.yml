@@ -1,0 +1,75 @@
+# ====================================
+# Docker Compose - Production Override
+# ====================================
+# Used in combination with docker-compose.yml
+# Run with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Or use: npm run docker:prod
+
+services:
+  # MongoDB - Production Configuration
+  mongodb:
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:27017:27017"  # Only bind to localhost for security
+    command: --wiredTigerCacheSizeGB 2.0 --auth
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # Next.js App - Production Configuration
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production  # Use production stage
+      args:
+        NODE_ENV: production
+    container_name: inclusive-learning-app-prod
+    restart: always
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - HOSTNAME=0.0.0.0
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_TELEMETRY_DISABLED=1
+      - DEBUG=false
+      - LOG_LEVEL=${LOG_LEVEL:-error}
+      - USE_OPTIMIZED_PIPELINE=${USE_OPTIMIZED_PIPELINE:-true}
+    env_file:
+      - .env.production  # Load production environment variables
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - inclusive-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # No volume mounts - code is baked into the image

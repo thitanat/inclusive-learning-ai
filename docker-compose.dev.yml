@@ -1,0 +1,57 @@
+# ====================================
+# Docker Compose - Development Override
+# ====================================
+# Used in combination with docker-compose.yml
+# Run with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Or use: npm run docker:dev
+
+services:
+  # MongoDB - Development Configuration
+  mongodb:
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-inclusive_admin_2026}
+    ports:
+      - "27017:27017"  # Expose for local development tools
+
+  # Next.js App - Development Configuration
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use development stage
+      args:
+        NODE_ENV: development
+    container_name: inclusive-learning-app-dev
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - HOSTNAME=0.0.0.0
+      - MONGO_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-inclusive_admin_2026}@mongodb:27017/inclusive?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3005}
+      - NEXT_TELEMETRY_DISABLED=1
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - USE_OPTIMIZED_PIPELINE=${USE_OPTIMIZED_PIPELINE:-true}
+    env_file:
+      - .env.development  # Load development environment variables
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      # Mount source code for hot-reload
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - inclusive-network
+    command: npm run dev

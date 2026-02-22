@@ -1,0 +1,203 @@
+┌─────────────────────────────────────────────────────────────────────┐
+│                  DOCKER MONGODB - QUICK REFERENCE                   │
+│              Inclusive Learning AI Platform (2026)                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════
+🚀 FIRST TIME SETUP
+═══════════════════════════════════════════════════════════════════════
+
+cp .env.example .env.local
+# Edit .env.local with your API keys
+docker-compose up -d mongodb
+npm install
+npm run dev
+
+Open: http://localhost:3005
+
+═══════════════════════════════════════════════════════════════════════
+🐳 DOCKER COMMANDS
+═══════════════════════════════════════════════════════════════════════
+
+Start MongoDB:
+  docker-compose up -d mongodb
+
+Stop MongoDB:
+  docker-compose stop mongodb
+
+View Logs:
+  docker logs -f inclusive-learning-mongodb
+
+Check Status:
+  docker ps | grep mongodb
+
+Restart MongoDB:
+  docker-compose restart mongodb
+
+Remove Container (keeps data):
+  docker-compose rm -f mongodb
+
+Remove Everything (⚠️ DELETES DATA):
+  docker-compose down -v
+
+═══════════════════════════════════════════════════════════════════════
+💾 DATABASE ACCESS
+═══════════════════════════════════════════════════════════════════════
+
+MongoDB Shell:
+  docker exec -it inclusive-learning-mongodb mongosh \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin
+
+Quick Query:
+  docker exec inclusive-learning-mongodb mongosh \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin inclusive \
+    --eval "db.users.countDocuments()"
+
+═══════════════════════════════════════════════════════════════════════
+📦 BACKUP & RESTORE
+═══════════════════════════════════════════════════════════════════════
+
+Backup:
+  docker exec inclusive-learning-mongodb mongodump \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin \
+    --db inclusive --out /data/backup
+  
+  docker cp inclusive-learning-mongodb:/data/backup \
+    ./backup-$(date +%Y%m%d)
+
+Restore:
+  docker cp ./backup inclusive-learning-mongodb:/data/restore
+  
+  docker exec inclusive-learning-mongodb mongorestore \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin \
+    --db inclusive /data/restore/inclusive
+
+═══════════════════════════════════════════════════════════════════════
+🔍 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════
+
+Port Already in Use:
+  lsof -i :27017
+  # Kill the process or change port in docker-compose.yml
+
+Container Won't Start:
+  docker logs inclusive-learning-mongodb
+  docker-compose down && docker-compose up -d mongodb
+
+App Can't Connect:
+  # Check .env.local has:
+  MONGO_URI=mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin
+
+Check Health:
+  docker inspect inclusive-learning-mongodb | grep -A 5 Health
+
+Test Connection:
+  mongosh "mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin"
+
+═══════════════════════════════════════════════════════════════════════
+📊 MONITORING
+═══════════════════════════════════════════════════════════════════════
+
+Resource Usage:
+  docker stats inclusive-learning-mongodb
+
+Disk Usage:
+  docker system df
+
+Collection Counts:
+  docker exec inclusive-learning-mongodb mongosh \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin inclusive \
+    --eval "
+      print('Users:', db.users.countDocuments());
+      print('Sessions:', db.sessions.countDocuments());
+      print('Finetune:', db.finetune_data.countDocuments());
+    "
+
+Check Indexes:
+  docker exec inclusive-learning-mongodb mongosh \
+    -u admin -p inclusive_admin_2026 \
+    --authenticationDatabase admin inclusive \
+    --eval "db.users.getIndexes()"
+
+═══════════════════════════════════════════════════════════════════════
+🔐 CONNECTION INFO
+═══════════════════════════════════════════════════════════════════════
+
+Host:          localhost
+Port:          27017
+Database:      inclusive
+Username:      admin
+Password:      inclusive_admin_2026 (⚠️ change in production!)
+Auth Database: admin
+
+Connection String:
+mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin
+
+Collections:
+  - users (user accounts)
+  - sessions (lesson plans)
+  - finetune_data (AI feedback)
+
+═══════════════════════════════════════════════════════════════════════
+⚙️ ENVIRONMENT VARIABLES (.env.local)
+═══════════════════════════════════════════════════════════════════════
+
+MONGO_URI=mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin
+MONGO_ROOT_PASSWORD=inclusive_admin_2026
+OPENAI_API_KEY=sk-your-key-here
+PINECONE_API_KEY=your-key-here
+JWT_SECRET=your-secret-here
+SERPER_API_KEY=your-key-here (optional)
+
+═══════════════════════════════════════════════════════════════════════
+🔄 MIGRATE FROM ATLAS
+═══════════════════════════════════════════════════════════════════════
+
+1. Export from Atlas:
+   mongodump --uri="mongodb+srv://user:pass@cluster.mongodb.net/inclusive" \
+     --out=./atlas-backup
+
+2. Start Docker MongoDB:
+   docker-compose up -d mongodb
+
+3. Import to Docker:
+   mongorestore --uri="mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin" \
+     ./atlas-backup/inclusive
+
+4. Update .env.local:
+   MONGO_URI=mongodb://admin:inclusive_admin_2026@localhost:27017/inclusive?authSource=admin
+
+5. Test:
+   npm run dev
+
+See: docs/atlas-to-docker-migration.md for full guide
+
+═══════════════════════════════════════════════════════════════════════
+📚 DOCUMENTATION
+═══════════════════════════════════════════════════════════════════════
+
+README.md                           - Quick start guide
+docs/docker-setup.md                - Detailed Docker documentation
+docs/atlas-to-docker-migration.md   - Migration guide
+docs/DOCKER_IMPLEMENTATION_SUMMARY.md - Implementation overview
+.env.example                        - Environment variables reference
+
+═══════════════════════════════════════════════════════════════════════
+🆘 NEED HELP?
+═══════════════════════════════════════════════════════════════════════
+
+1. Check logs: docker logs inclusive-learning-mongodb
+2. View docs/docker-setup.md troubleshooting section
+3. Verify MongoDB is running: docker ps
+4. Test connection string in .env.local
+5. Check port 27017 is not in use: lsof -i :27017
+
+═══════════════════════════════════════════════════════════════════════
+
+Last Updated: February 22, 2026
+Version: MongoDB 6.0 / Docker Compose 3.8

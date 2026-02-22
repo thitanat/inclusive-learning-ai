@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
     // ✅ Disable ESLint errors during build
     ignoreDuringBuilds: true,
   },
+  // ✅ Enable standalone output for Docker deployment
+  output: 'standalone',
+  
+  // ✅ Enable instrumentation hook to load env.config.js before everything
+  experimental: {
+    instrumentationHook: true,
+  },
 };
 
 export default nextConfig;
