@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# ============================================================================
+# DEPLOYMENT CONFIGURATION
+# ============================================================================
+# IMPORTANT: Copy this file to 'config.sh' and fill in your actual credentials
+# cp config.sh.example config.sh
+#
+# NEVER commit config.sh - it contains sensitive information!
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Server Configuration
+# ----------------------------------------------------------------------------
+SERVER_HOST="your.server.ip.or.domain"    # Remote server IP or hostname
+SERVER_USER="deploy_user"                  # SSH username
+SERVER_PASSWORD="your_server_password"     # SSH password (or leave empty if using SSH keys)
+SERVER_PORT="22"                           # SSH port (default: 22)
+SERVER_DEPLOY_PATH="/var/www/inclusive-learning-ai"  # Deployment directory on server
+
+# ----------------------------------------------------------------------------
+# VPN Configuration (Optional - set VPN_SKIP=true if not needed)
+# ----------------------------------------------------------------------------
+VPN_SKIP=false                            # Set to 'true' to skip VPN connection
+VPN_HOST="vpn.example.com"                # VPN server hostname
+VPN_USERNAME="vpn_user"                   # VPN username
+VPN_PASSWORD="vpn_password"               # VPN password
+VPN_PROTOCOL="openconnect"                # VPN protocol: openconnect, openvpn
+SUDO_PASSWORD="your_local_sudo_password"  # Local machine sudo password (for VPN)
+
+# ----------------------------------------------------------------------------
+# Repository Configuration
+# ----------------------------------------------------------------------------
+# GitHub Personal Access Token (for private repositories)
+# Get token from: https://github.com/settings/tokens
+# Required scopes: repo (Full control of private repositories)
+# Leave empty for public repositories
+GITHUB_TOKEN=""                          # Example: ghp_xxxxxxxxxxxxxxxxxxxx
+
+# Repository (format: owner/repository-name)
+REPO="yourusername/inclusive-learning-ai"  # Example: octocat/my-repo
+
+# Branch to deploy
+REPO_BRANCH="main"                       # Example: main, production, staging
+
+# ----------------------------------------------------------------------------
+# Docker Configuration
+# ----------------------------------------------------------------------------
+DOCKER_COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"  # Compose files to use
+CONTAINER_NAME="inclusive-app"            # Main application container name
+APP_PORT="3000"                           # Application port
+MONGODB_PORT="27017"                      # MongoDB port
+
+# ----------------------------------------------------------------------------
+# Application Configuration
+# ----------------------------------------------------------------------------
+ENV_FILE=".env.production"                # Local environment file to upload
+REMOTE_ENV_FILE=".env.production"         # Remote environment file path
+
+# ----------------------------------------------------------------------------
+# Deployment Options
+# ----------------------------------------------------------------------------
+DEPLOY_TIMEOUT=600                        # Maximum time to wait for deployment (seconds)
+HEALTH_CHECK_RETRIES=30                   # Number of health check attempts
+HEALTH_CHECK_INTERVAL=2                   # Seconds between health checks
+
+# ----------------------------------------------------------------------------
+# Notification Configuration (Optional)
+# ----------------------------------------------------------------------------
+SLACK_WEBHOOK_URL=""                      # Slack webhook for deployment notifications
+DISCORD_WEBHOOK_URL=""                    # Discord webhook for deployment notifications
+EMAIL_NOTIFICATIONS=false                 # Enable email notifications

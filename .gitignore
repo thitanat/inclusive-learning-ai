@@ -67,3 +67,11 @@ mongo-data/
 data/db/
 data/configdb/
 
+# deployment credentials & secrets
+# ⚠️ NEVER commit these files - they contain sensitive information!
+deploy/config.sh
+deploy/*.ovpn
+deploy/vpn-config.ovpn
+deploy/*.key
+deploy/*.pem
+
