@@ -53,6 +53,8 @@ services:
       - USE_OPTIMIZED_PIPELINE=${USE_OPTIMIZED_PIPELINE:-true}
     env_file:
       - .env.production  # Load production environment variables
+    volumes:
+      - ./.env.production:/app/.env.production:ro
     depends_on:
       mongodb:
         condition: service_healthy
