@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, TextField, Button, Typography, Box } from "@mui/material";
+import { withBasePath } from "@/lib/appPath";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(withBasePath("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -127,7 +128,7 @@ export default function LoginPage() {
         <Button
           variant="outlined"
           fullWidth
-          href="/register"
+          href={withBasePath("/register")}
           component="a"
           sx={{
             background: "rgba(139, 92, 246, 0.15)",

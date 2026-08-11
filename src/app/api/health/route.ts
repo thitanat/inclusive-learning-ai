@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/db';
+import { connectDB } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Optional: Check database connection
     try {
-      await connectToDatabase();
+      await connectDB();
       healthStatus.database = 'connected';
     } catch (dbError) {
       healthStatus.database = 'disconnected';

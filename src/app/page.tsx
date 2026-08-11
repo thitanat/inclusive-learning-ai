@@ -22,6 +22,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import StarIcon from "@mui/icons-material/Star";
 import InclusiveLearningLogo from "@/components/InclusiveLearningLogo";
+import { withBasePath } from "@/lib/appPath";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -148,7 +149,7 @@ export default function LandingPage() {
               }}
             >
               <img
-                src="/chulalongkorn-logo.png"
+                src={withBasePath("/chulalongkorn-logo.png")}
                 alt="Chulalongkorn University"
                 style={{
                   width: "100%",

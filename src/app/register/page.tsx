@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, TextField, Button, Typography, Box } from "@mui/material";
+import { withBasePath } from "@/lib/appPath";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    const res = await fetch("/api/auth/register", {
+    const res = await fetch(withBasePath("/api/auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),

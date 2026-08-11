@@ -24,6 +24,7 @@ import ListIcon from "@mui/icons-material/List";
 import HomeIcon from "@mui/icons-material/Home";
 import InclusiveLearningLogo from "@/components/InclusiveLearningLogo";
 import { set } from "zod";
+import { withBasePath } from "@/lib/appPath";
 
 const FileViewer = dynamic(() => import("react-file-viewer"), { ssr: false }) as any;
 
@@ -189,7 +190,7 @@ function SessionPageContent() {
       const sessionId = localStorage.getItem("session-id");
       
       if (token && sessionId) {
-        const updateResponse = await fetch("/api/session", {
+        const updateResponse = await fetch(withBasePath("/api/session"), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -592,7 +593,7 @@ function SessionPageContent() {
                 }}
               >
                 <img
-                  src="/chulalongkorn-logo.png"
+                  src={withBasePath("/chulalongkorn-logo.png")}
                   alt="Chulalongkorn University"
                   style={{
                     width: "100%",

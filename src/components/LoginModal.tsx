@@ -30,6 +30,7 @@ import LineQROpenModal from "./LineQROpenModal";
 import LineIcon from "./LineIcon";
 import DemoVideoModal from "./DemoVideoModal";
 import InclusiveLearningLogo from "./InclusiveLearningLogo";
+import { withBasePath } from "@/lib/appPath";
 
 interface LoginModalProps {
   open: boolean;
@@ -58,7 +59,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
         const decoded = JSON.parse(atob(token.split(".")[1]));
         setUserId(decoded.userId);
         setLoading(true);
-        fetch("/api/session/all_sessions", {
+        fetch(withBasePath("/api/session/all_sessions"), {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => {
@@ -99,7 +100,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
 
   const handleLogin = async () => {
     setLoading(true);
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(withBasePath("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -115,7 +116,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
 
       // fetch sessions
       setLoading(true);
-      const sessionRes = await fetch("/api/session/all_sessions", {
+      const sessionRes = await fetch(withBasePath("/api/session/all_sessions"), {
         headers: { Authorization: `Bearer ${data.token}` },
       });
       const sessionList = await sessionRes.json();
@@ -129,7 +130,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
 
   const handleRegister = async () => {
     setLoading(true);
-    const res = await fetch("/api/auth/register", {
+    const res = await fetch(withBasePath("/api/auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, firstName, lastName }), // ส่งเพิ่ม
@@ -153,7 +154,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
     if (!userId) return;
     setLoading(true);
     const token = localStorage.getItem("token");
-    const res = await fetch("/api/session/create", {
+    const res = await fetch(withBasePath("/api/session/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ userId, configStep: 0 }),
@@ -247,7 +248,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
               }}
             >
               <img
-                src="/chulalongkorn-logo.png"
+                src={withBasePath("/chulalongkorn-logo.png")}
                 alt="Chulalongkorn University"
                 style={{
                   width: "100%",
@@ -455,7 +456,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
               }}
             >
               <img
-                src="/chulalongkorn-logo.png"
+                src={withBasePath("/chulalongkorn-logo.png")}
                 alt="Chulalongkorn University"
                 style={{
                   width: "100%",
@@ -690,7 +691,7 @@ export default function LoginModal({ open, onLoginSuccess, forceSessionStep, for
               }}
             >
               <img
-                src="/chulalongkorn-logo.png"
+                src={withBasePath("/chulalongkorn-logo.png")}
                 alt="Chulalongkorn University"
                 style={{
                   width: "100%",

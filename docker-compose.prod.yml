@@ -12,7 +12,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     ports:
-      - "127.0.0.1:27017:27017"  # Only bind to localhost for security
+      - "127.0.0.1:${MONGO_HOST_PORT:-27017}:27017"  # Only bind to localhost for security
     command: --wiredTigerCacheSizeGB 2.0 --auth
     deploy:
       resources:
@@ -34,12 +34,12 @@ services:
     container_name: inclusive-learning-app-prod
     restart: always
     ports:
-      - "3005:3005"
+      - "127.0.0.1:3005:3005"
     environment:
       - NODE_ENV=production
       - PORT=3005
       - HOSTNAME=0.0.0.0
-      - MONGO_URI=${MONGO_URI}
+      - MONGO_URI=mongodb://admin:${MONGO_ROOT_PASSWORD}@mongodb:27017/inclusive?authSource=admin
       - JWT_SECRET=${JWT_SECRET}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SERPER_API_KEY=${SERPER_API_KEY}
@@ -67,7 +67,7 @@ services:
           cpus: '1.0'
           memory: 2G
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/inclusive/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
