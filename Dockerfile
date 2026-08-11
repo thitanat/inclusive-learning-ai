@@ -9,7 +9,7 @@
 # ====================================
 # Stage 1: Base - Common dependencies
 # ====================================
-FROM node:20-alpine AS base
+FROM node:18-alpine AS base
 WORKDIR /app
 
 # Install dependencies for native modules
@@ -75,7 +75,7 @@ RUN npm run build
 # ====================================
 # Stage 5: Production - Optimized runtime
 # ====================================
-FROM node:20-alpine AS production
+FROM node:18-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
